@@ -1,6 +1,6 @@
 # 音乐 Music
 
-这是一个基于波尼音乐改造的可共享音频的 Android 音乐播放器版本。
+这是一个基于波尼音乐改造的可共享播放器操作的 Android 音乐播放器。
 
 ## 功能
 
@@ -16,9 +16,10 @@
 - 感谢 [波尼音乐 / PonyMusic](https://github.com/wangchenyan/ponymusic) 提供优秀的开源播放器基础，本项目是在其基础上继续学习和改造。
 - 感谢 [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) 及相关社区项目提供 API 能力。
 - 感谢 Android、Media3、ExoPlayer、Cloudflare Workers 等开源生态。
+- 感谢 ChatGPT。
 
 ## 开源协议
 
 本项目基于原波尼音乐项目继续改造，沿用 Apache License 2.0 开源协议。
 
-本项目不提供破解、代理、登录服务，请遵守相关平台规则。本项目仅用于个人学习、研究和自用场景，请勿用于商业化或滥用访问。使用者请于24小时内将本项目删除。
+本项目不提供破解、代理、登录服务，请遵守相关平台规则。本项目仅用于个人学习、研究场景。使用者请于24小时内将本项目删除。
