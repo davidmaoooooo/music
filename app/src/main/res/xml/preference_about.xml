@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="@string/menu_about">
+        <Preference
+            android:key="version"
+            android:title="版本号" />
+        <Preference
+            android:key="pony_music"
+            android:summary="https://github.com/wangchenyan/ponymusic"
+            android:title="波尼音乐 / PonyMusic" />
+        <Preference
+            android:key="netease_api"
+            android:summary="https://github.com/Binaryify/NeteaseCloudMusicApi"
+            android:title="NeteaseCloudMusicApi" />
+    </PreferenceCategory>
+</PreferenceScreen>

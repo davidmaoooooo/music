@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="setting_key_dark_mode">dark_mode</string>
+    <string name="setting_key_theme_color_mode">theme_color_mode</string>
+    <string name="setting_key_play_sound_quality">play_sound_quality</string>
+    <string name="setting_key_download_sound_quality">download_sound_quality</string>
+    <string name="setting_key_sound_effect">sound_effect</string>
+    <string name="setting_key_filter_size">filter_size</string>
+    <string name="setting_key_filter_time">filter_time</string>
+    <string name="setting_key_music_cache_limit">music_cache_limit_mb</string>
+    <string name="setting_key_clear_music_cache">clear_music_cache</string>
+    <string name="setting_key_api_domain">api_domain</string>
+    <string name="setting_key_listen_together_worker_url">listen_together_worker_url</string>
+    <string name="setting_key_listen_together_debug_log">listen_together_debug_log</string>
+    <string name="setting_key_song_request_cookie">song_request_cookie</string>
+    <string name="setting_key_request_user_agent">request_user_agent</string>
+</resources>

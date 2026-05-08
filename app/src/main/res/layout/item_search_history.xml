@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.hjq.shape.view.ShapeTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="7dp"
+    android:singleLine="true"
+    android:textColor="@color/md_on_secondary_container"
+    android:textSize="12dp"
+    app:shape_radius="8dp"
+    app:shape_solidColor="@color/md_secondary_container"
+    tools:text="周杰伦" />

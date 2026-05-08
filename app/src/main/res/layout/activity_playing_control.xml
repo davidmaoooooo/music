@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:background="@drawable/bg_playing_control_panel"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="14dp">
+
+    <LinearLayout
+        android:id="@+id/llActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingBottom="4dp">
+
+        <LinearLayout
+            android:id="@+id/songInfoLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="曲目"
+                android:textColor="@color/playing_on_surface"
+                android:textSize="17dp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="艺术家"
+                android:textColor="@color/playing_on_surface_variant"
+                android:textSize="12dp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/ivLike"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:padding="11dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_favorite_selector"
+            app:tint="@color/playing_on_surface" />
+
+        <ImageView
+            android:id="@+id/ivDownload"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:padding="11dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_download"
+            app:tint="@color/playing_on_surface" />
+
+        <ImageView
+            android:id="@+id/ivComment"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:contentDescription="评论"
+            android:padding="11dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_comment"
+            app:tint="@color/playing_on_surface" />
+
+        <ImageView
+            android:id="@+id/ivHeartMode"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:contentDescription="心动模式"
+            android:padding="11dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_radio"
+            app:tint="@color/playing_on_surface" />
+
+        <ImageView
+            android:id="@+id/ivMore"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:contentDescription="更多"
+            android:padding="11dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_more"
+            app:tint="@color/playing_on_surface" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/llProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:orientation="vertical">
+
+        <SeekBar
+            android:id="@+id/sbProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="4dp"
+            android:minHeight="4dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:progressDrawable="@drawable/bg_playing_playback_progress"
+            android:thumb="@drawable/ic_playing_playback_progress_thumb" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvCurrentTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/play_time_start"
+                android:textColor="@color/playing_on_surface_variant"
+                android:textSize="10dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvTotalTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/play_time_start"
+                android:textColor="@color/playing_on_surface_variant"
+                android:textSize="10dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_marginTop="14dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/ivMode"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:padding="13dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_play_mode_level_list"
+            app:tint="@color/playing_on_surface" />
+
+        <ImageView
+            android:id="@+id/ivPrev"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:padding="13dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_previous"
+            app:tint="@color/playing_on_surface" />
+
+        <FrameLayout
+            android:id="@+id/flPlay"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="4dp">
+
+            <ImageView
+                android:id="@+id/ivPlay"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_playing_play_pause_selector"
+                app:tint="?attr/colorPrimary" />
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/loadingProgress"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                app:indicatorColor="?attr/colorPrimary"
+                app:indicatorSize="48dp"
+                app:trackThickness="2dp" />
+        </FrameLayout>
+
+        <ImageView
+            android:id="@+id/ivNext"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:padding="13dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_next"
+            app:tint="@color/playing_on_surface" />
+
+        <ImageView
+            android:id="@+id/ivPlaylist"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_playing_icon_button"
+            android:padding="13dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_playlist"
+            app:tint="@color/playing_on_surface" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="timer_text">
+        <item>不开启</item>
+        <item>10分钟后</item>
+        <item>20分钟后</item>
+        <item>30分钟后</item>
+        <item>45分钟后</item>
+        <item>60分钟后</item>
+        <item>90分钟后</item>
+    </string-array>
+
+    <integer-array name="timer_int">
+        <item>0</item>
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+        <item>45</item>
+        <item>60</item>
+        <item>90</item>
+    </integer-array>
+
+    <string-array name="dark_mode_entries">
+        <item>跟随系统</item>
+        <item>浅色</item>
+        <item>深色</item>
+    </string-array>
+
+    <string-array name="dark_mode_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="theme_color_entries">
+        <item>默认蓝色</item>
+        <item>红色</item>
+        <item>绿色</item>
+        <item>紫色</item>
+        <item>橙色</item>
+        <item>自定义调色盘</item>
+    </string-array>
+
+    <string-array name="theme_color_values">
+        <item>blue</item>
+        <item>red</item>
+        <item>green</item>
+        <item>purple</item>
+        <item>orange</item>
+        <item>custom</item>
+    </string-array>
+
+    <string-array name="sound_quality_entries">
+        <item>标准</item>
+        <item>较高</item>
+        <item>极高(HQ)</item>
+        <item>无损(SQ)</item>
+        <item>高解析度无损(Hi-Res)🇻</item>
+        <item>高清环绕声(Spatial Audio)🇻</item>
+        <item>沉浸环绕声(Surround Audio)🇸</item>
+        <item>超清母带(Master)🇸</item>
+    </string-array>
+
+    <string-array name="sound_quality_entry_values">
+        <item>standard</item>
+        <item>higher</item>
+        <item>exhigh</item>
+        <item>lossless</item>
+        <item>hires</item>
+        <item>jyeffect</item>
+        <item>sky</item>
+        <item>jymaster</item>
+    </string-array>
+
+    <string-array name="filter_size_entries">
+        <item>不过滤</item>
+        <item>100KB</item>
+        <item>200KB</item>
+        <item>500KB</item>
+        <item>1MB</item>
+        <item>2MB</item>
+    </string-array>
+
+    <string-array name="filter_size_entry_values">
+        <item>0</item>
+        <item>100</item>
+        <item>200</item>
+        <item>500</item>
+        <item>1024</item>
+        <item>2048</item>
+    </string-array>
+
+    <string-array name="filter_time_entries">
+        <item>不过滤</item>
+        <item>15秒</item>
+        <item>30秒</item>
+        <item>1分钟</item>
+        <item>1分30秒</item>
+        <item>2分钟</item>
+    </string-array>
+
+    <string-array name="filter_time_entry_values">
+        <item>0</item>
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+        <item>90</item>
+        <item>120</item>
+    </string-array>
+
+    <string-array name="music_cache_limit_entries">
+        <item>不缓存歌曲</item>
+        <item>100MB</item>
+        <item>200MB</item>
+        <item>500MB</item>
+        <item>1GB</item>
+        <item>2GB</item>
+    </string-array>
+
+    <string-array name="music_cache_limit_values">
+        <item>0</item>
+        <item>100</item>
+        <item>200</item>
+        <item>500</item>
+        <item>1024</item>
+        <item>2048</item>
+    </string-array>
+</resources>

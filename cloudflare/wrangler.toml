@@ -1,0 +1,11 @@
+name = "music-listen-together"
+main = "listen-together-worker.js"
+compatibility_date = "2026-05-01"
+
+[[durable_objects.bindings]]
+name = "LISTEN_TOGETHER_ROOM"
+class_name = "ListenTogetherRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ListenTogetherRoom"]

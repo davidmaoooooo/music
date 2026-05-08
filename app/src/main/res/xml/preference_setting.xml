@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="通用">
+        <ListPreference
+            android:defaultValue="0"
+            android:dialogTitle="外观"
+            android:entries="@array/dark_mode_entries"
+            android:entryValues="@array/dark_mode_values"
+            android:key="@string/setting_key_dark_mode"
+            android:summary="跟随系统"
+            android:title="外观" />
+
+        <ListPreference
+            android:defaultValue="blue"
+            android:dialogTitle="主题色"
+            android:entries="@array/theme_color_entries"
+            android:entryValues="@array/theme_color_values"
+            android:key="@string/setting_key_theme_color_mode"
+            android:summary="默认蓝色"
+            android:title="主题色" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/play">
+        <Preference
+            android:key="@string/setting_key_sound_effect"
+            android:title="@string/sound_effect" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="缓存">
+        <ListPreference
+            android:defaultValue="200"
+            android:dialogTitle="歌曲缓存上限"
+            android:entries="@array/music_cache_limit_entries"
+            android:entryValues="@array/music_cache_limit_values"
+            android:key="@string/setting_key_music_cache_limit"
+            android:summary="200MB"
+            android:title="歌曲缓存上限" />
+
+        <Preference
+            android:key="@string/setting_key_clear_music_cache"
+            android:summary="清理已缓存的歌曲和接口响应"
+            android:title="清理缓存" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="文件过滤">
+        <ListPreference
+            android:defaultValue="0"
+            android:dialogTitle="最小大小"
+            android:entries="@array/filter_size_entries"
+            android:entryValues="@array/filter_size_entry_values"
+            android:key="@string/setting_key_filter_size"
+            android:summary="不过滤"
+            android:title="按大小过滤" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:dialogTitle="最小时长"
+            android:entries="@array/filter_time_entries"
+            android:entryValues="@array/filter_time_entry_values"
+            android:key="@string/setting_key_filter_time"
+            android:summary="不过滤"
+            android:title="按时长过滤" />
+    </PreferenceCategory>
+</PreferenceScreen>

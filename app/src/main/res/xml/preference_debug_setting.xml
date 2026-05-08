@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="调试设置">
+        <EditTextPreference
+            android:key="@string/setting_key_api_domain"
+            android:selectAllOnFocus="false"
+            android:title="API 地址" />
+
+        <EditTextPreference
+            android:key="@string/setting_key_listen_together_worker_url"
+            android:selectAllOnFocus="false"
+            android:summary="留空则使用默认服务器，填写则使用自定义地址"
+            android:title="一起听服务器地址" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="@string/setting_key_listen_together_enabled"
+            android:summary="默认关闭；开启后才显示入口并启用一起听相关功能"
+            android:title="一起听功能开关" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="@string/setting_key_listen_together_debug_log"
+            android:summary="开启后会把一起听收发指令和重连过程写入 Download 目录，平时建议关闭"
+            android:title="一起听 Debug 抓取" />
+
+        <EditTextPreference
+            android:key="@string/setting_key_song_request_cookie"
+            android:selectAllOnFocus="false"
+            android:summary="留空时使用当前登录用户 Cookie"
+            android:title="歌曲 Cookie 请求设置" />
+
+        <EditTextPreference
+            android:key="@string/setting_key_request_user_agent"
+            android:selectAllOnFocus="false"
+            android:title="应用请求 UA" />
+    </PreferenceCategory>
+</PreferenceScreen>

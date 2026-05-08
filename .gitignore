@@ -1,0 +1,15 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+/.kotlin
+/cloudflare/.wrangler/
+.DS_Store
+/build
+**/build/
+/captures
+*.apk
+*.aab
+*.jks
+*.keystore
+google-services.json

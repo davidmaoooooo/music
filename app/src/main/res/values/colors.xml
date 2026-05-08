@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="red_500">#F44336</color>
+    <color name="red_700">#D32F2F</color>
+    <color name="red_500_p30">#4CF44336</color>
+    <color name="white_p96">#F5FFFFFF</color>
+    <color name="blue">#2196F3</color>
+    <color name="theme_blue_primary">#1976D2</color>
+    <color name="theme_green_primary">#2E7D32</color>
+    <color name="theme_purple_primary">#7B1FA2</color>
+    <color name="theme_orange_primary">#EF6C00</color>
+    <color name="theme_teal_primary">#00897B</color>
+    <color name="theme_indigo_primary">#3949AB</color>
+    <color name="theme_pink_primary">#C2185B</color>
+    <color name="theme_cyan_primary">#00838F</color>
+    <color name="grey">#9E9E9E</color>
+    <color name="grey_p50">#809E9E9E</color>
+    <color name="grey_100">#E5E5E5</color>
+    <color name="grey_300">#E0E0E0</color>
+    <color name="grey_700_p96">#F5616161</color>
+    <color name="grey_300_p96">#F5E0E0E0</color>
+    <color name="grey_800">#424242</color>
+    <color name="grey_900">#212121</color>
+    <color name="grey_900_p96">#F5212121</color>
+    <color name="ic_launcher_background">@color/red_500</color>
+    <color name="md_surface_variant">#F4F0EF</color>
+    <color name="md_outline">#E7DCDA</color>
+    <color name="md_primary_container">#FFE7E3</color>
+    <color name="md_on_primary_container">#8C1D18</color>
+    <color name="md_secondary_container">#EEF1F7</color>
+    <color name="md_on_secondary_container">#273142</color>
+    <color name="playing_surface">#FFFDFC</color>
+    <color name="playing_on_surface">#211A19</color>
+    <color name="playing_on_surface_variant">#6F5F5C</color>
+
+    <color name="common_theme_color" tools:override="true">@color/red_500</color>
+    <color name="common_background_color" tools:override="true">#FAFAFA</color>
+    <color name="common_title_bar_color" tools:override="true">@color/common_theme_color</color>
+    <color name="common_dialog_background_color" tools:override="true">@color/white</color>
+    <color name="common_text_h1_color" tools:override="true">#202020</color>
+    <color name="common_text_h2_color" tools:override="true">@color/grey</color>
+    <color name="common_text_theme" tools:override="true">@color/common_theme_color</color>
+    <color name="common_divider" tools:override="true">@color/grey_100</color>
+
+    <color name="tab_bg">@color/white</color>
+    <color name="card_bg">@color/white</color>
+    <color name="play_bar_bg">@color/white</color>
+</resources>
