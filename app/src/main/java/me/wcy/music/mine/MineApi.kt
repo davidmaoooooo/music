@@ -1,6 +1,9 @@
 package me.wcy.music.mine
 
 import me.wcy.music.discover.playlist.square.bean.PlaylistListData
+import me.wcy.music.mine.bean.RecentSongListData
+import me.wcy.music.mine.bean.RecentPlaylistListData
+import me.wcy.music.mine.bean.UserRecordListData
 import me.wcy.music.mine.collect.song.bean.CollectSongResult
 import me.wcy.music.net.HttpClient
 import me.wcy.music.service.likesong.bean.LikeSongListData
@@ -71,6 +74,34 @@ interface MineApi {
         @Query("uid") uid: Long,
         @Query("timestamp") timestamp: Long = ServerTime.currentTimeMillis()
     ): LikeSongListData
+
+    /**
+     * 最近播放歌单
+     */
+    @POST("record/recent/playlist")
+    suspend fun getRecentPlaylist(
+        @Query("limit") limit: Int = 20,
+        @Query("timestamp") timestamp: Long = ServerTime.currentTimeMillis()
+    ): RecentPlaylistListData
+
+    /**
+     * 最近播放歌曲
+     */
+    @POST("record/recent/song")
+    suspend fun getRecentSongs(
+        @Query("limit") limit: Int = 100,
+        @Query("timestamp") timestamp: Long = ServerTime.currentTimeMillis()
+    ): RecentSongListData
+
+    /**
+     * 听歌排行，type=1 最近一周，type=0 所有时间
+     */
+    @POST("user/record")
+    suspend fun getUserRecord(
+        @Query("uid") uid: Long,
+        @Query("type") type: Int = 1,
+        @Query("timestamp") timestamp: Long = ServerTime.currentTimeMillis()
+    ): UserRecordListData
 
     companion object {
         private val api: MineApi by lazy {

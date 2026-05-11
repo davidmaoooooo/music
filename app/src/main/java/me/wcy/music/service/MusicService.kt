@@ -7,8 +7,10 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -40,6 +42,7 @@ class MusicService : MediaSessionService() {
             .build()
 
         session = MediaSession.Builder(this, NotificationPlayer(player))
+            .setBitmapLoader(CacheBitmapLoader(DataSourceBitmapLoader(applicationContext)))
             .setSessionActivity(
                 PendingIntent.getActivity(
                     this,

@@ -28,6 +28,7 @@ import me.wcy.music.listen.ListenTogetherRole
 import me.wcy.music.service.MusicService
 import me.wcy.music.service.PlayServiceModule
 import me.wcy.music.service.PlayServiceModule.playerController
+import me.wcy.music.source.ThirdPartySourceActivity
 import me.wcy.music.storage.preference.ConfigPreferences
 import me.wcy.music.utils.QuitTimer
 import me.wcy.music.utils.TimeUtils
@@ -96,6 +97,7 @@ class MainActivity : BaseMusicActivity() {
         super.onResume()
         if (initialized) {
             updateListenTogetherDrawerEntry()
+            updateSourceManageDrawerEntry()
         }
     }
 
@@ -108,6 +110,7 @@ class MainActivity : BaseMusicActivity() {
         viewBinding.navigationView.addHeaderView(navigationHeaderBinding.root)
         viewBinding.navigationView.setNavigationItemSelectedListener(onMenuSelectListener)
         updateListenTogetherDrawerEntry()
+        updateSourceManageDrawerEntry()
         navigationHeaderBinding.tvListenTogetherExit.setOnClickListener {
             ListenTogetherManager.leave()
         }
@@ -141,6 +144,11 @@ class MainActivity : BaseMusicActivity() {
             ConfigPreferences.listenTogetherEnabled
     }
 
+    private fun updateSourceManageDrawerEntry() {
+        viewBinding.navigationView.menu.findItem(R.id.action_source_manage)?.isVisible =
+            ConfigPreferences.thirdPartySourceEnabled
+    }
+
     fun openDrawer() {
         if (viewBinding.drawerLayout.isDrawerOpen(GravityCompat.START).not()) {
             viewBinding.drawerLayout.openDrawer(GravityCompat.START)
@@ -172,6 +180,11 @@ class MainActivity : BaseMusicActivity() {
 
                 R.id.action_listen_together -> {
                     ListenTogetherDialog(this@MainActivity).show()
+                    return true
+                }
+
+                R.id.action_source_manage -> {
+                    startActivity(Intent(this@MainActivity, ThirdPartySourceActivity::class.java))
                     return true
                 }
 

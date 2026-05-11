@@ -22,19 +22,32 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/play">
-        <Preference
-            android:key="@string/setting_key_sound_effect"
-            android:title="@string/sound_effect" />
+        <ListPreference
+            android:defaultValue="standard"
+            android:dialogTitle="播放音质"
+            android:entries="@array/music_sound_quality_entries"
+            android:entryValues="@array/music_sound_quality_values"
+            android:key="@string/setting_key_play_sound_quality"
+            android:summary="标准"
+            android:title="播放音质" />
+
+        <ListPreference
+            android:defaultValue="standard"
+            android:dialogTitle="下载音质"
+            android:entries="@array/music_sound_quality_entries"
+            android:entryValues="@array/music_sound_quality_values"
+            android:key="@string/setting_key_download_sound_quality"
+            android:summary="标准"
+            android:title="下载音质" />
+
     </PreferenceCategory>
 
     <PreferenceCategory android:title="缓存">
-        <ListPreference
+        <Preference
             android:defaultValue="200"
             android:dialogTitle="歌曲缓存上限"
-            android:entries="@array/music_cache_limit_entries"
-            android:entryValues="@array/music_cache_limit_values"
             android:key="@string/setting_key_music_cache_limit"
-            android:summary="200MB"
+            android:summary="200MB，点击自定义"
             android:title="歌曲缓存上限" />
 
         <Preference

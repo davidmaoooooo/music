@@ -8,9 +8,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import me.wcy.music.account.service.UserService
+import me.wcy.music.common.bean.SongData
 import me.wcy.music.common.bean.PlaylistData
 import me.wcy.music.mine.MineApi
+import me.wcy.music.mine.bean.MineVirtualPlaylist
+import me.wcy.music.mine.bean.UserRecordItemData
 import me.wcy.music.net.NetCache
+import me.wcy.music.mine.record.MineRecordStore
 import top.wangchenyan.common.ext.toUnMutable
 import top.wangchenyan.common.model.CommonResult
 import top.wangchenyan.common.net.apiCall
@@ -27,6 +31,12 @@ class MineViewModel @Inject constructor() : ViewModel() {
     val myPlaylists = _myPlaylists
     private val _collectPlaylists = MutableStateFlow<List<PlaylistData>>(emptyList())
     val collectPlaylists = _collectPlaylists
+    private val _recentPlaylists = MutableStateFlow<List<MineVirtualPlaylist>>(emptyList())
+    val recentPlaylists = _recentPlaylists
+    private val _recentPlayedPlaylists = MutableStateFlow<List<PlaylistData>>(emptyList())
+    val recentPlayedPlaylists = _recentPlayedPlaylists
+    private val _listeningRanks = MutableStateFlow<List<UserRecordItemData>>(emptyList())
+    val listeningRanks = _listeningRanks
 
     @Inject
     lateinit var userService: UserService
@@ -42,6 +52,11 @@ class MineViewModel @Inject constructor() : ViewModel() {
                     _likePlaylist.value = null
                     _myPlaylists.value = emptyList()
                     _collectPlaylists.value = emptyList()
+                    _recentPlaylists.value = emptyList()
+                    _recentPlayedPlaylists.value = emptyList()
+                    _listeningRanks.value = emptyList()
+                    MineRecordStore.recentSongs = emptyList()
+                    MineRecordStore.listeningRanks = emptyList()
                 }
             }
         }
@@ -50,6 +65,7 @@ class MineViewModel @Inject constructor() : ViewModel() {
     fun updatePlaylistFromCache() {
         viewModelScope.launch {
             if (userService.isLogin()) {
+                updateRecordsFromCache()
                 val uid = userService.profile.value?.userId ?: return@launch
                 val cacheList = NetCache.userCache.getJsonArray(CACHE_KEY, PlaylistData::class.java)
                     ?: return@launch
@@ -76,7 +92,67 @@ class MineViewModel @Inject constructor() : ViewModel() {
                 notifyPlaylist(uid, list)
                 NetCache.userCache.putJson(CACHE_KEY, list)
             }
+            updateRecords(uid)
         }
+    }
+
+    private suspend fun updateRecordsFromCache() {
+        val recent = NetCache.userCache.getJsonArray(CACHE_KEY_RECENT_SONGS, SongData::class.java)
+        if (recent != null) {
+            MineRecordStore.recentSongs = recent
+        }
+        val ranks = NetCache.userCache.getJsonArray(CACHE_KEY_LISTENING_RANK, UserRecordItemData::class.java)
+        if (ranks != null) {
+            MineRecordStore.listeningRanks = ranks
+            _listeningRanks.value = ranks
+        }
+        val recentPlayedPlaylists = NetCache.userCache.getJsonArray(CACHE_KEY_RECENT_PLAYLIST, PlaylistData::class.java)
+        if (recentPlayedPlaylists != null) {
+            _recentPlayedPlaylists.value = recentPlayedPlaylists
+        }
+        _recentPlaylists.value = MineRecordStore.virtualPlaylists()
+    }
+
+    private suspend fun updateRecords(uid: Long) {
+        runCatching {
+            MineApi.get().getRecentSongs(100)
+        }.getOrNull()?.takeIf { it.code == 200 }?.let { result ->
+            val list = result.data.list.map { it.song }.filter { it.id > 0 }.distinctBy { it.id }
+            MineRecordStore.recentSongs = list
+            NetCache.userCache.putJson(CACHE_KEY_RECENT_SONGS, list)
+        }
+        runCatching {
+            MineApi.get().getRecentPlaylist(20)
+        }.getOrNull()?.takeIf { it.code == 200 }?.let { result ->
+            val list = result.data.list.map { it.playlist }.filter { it.id > 0 }.distinctBy { it.id }
+            _recentPlayedPlaylists.value = list
+            NetCache.userCache.putJson(CACHE_KEY_RECENT_PLAYLIST, list)
+        }
+        val weeklyRecord = runCatching {
+            MineApi.get().getUserRecord(uid, 1)
+        }.getOrNull()?.takeIf { it.code == 200 }
+        val allRecord = if ((weeklyRecord?.weekData?.size ?: 0) < MIN_RECORD_FALLBACK_SIZE) {
+            runCatching {
+                MineApi.get().getUserRecord(uid, 0)
+            }.getOrNull()?.takeIf { it.code == 200 }
+        } else {
+            null
+        }
+        (weeklyRecord ?: allRecord)?.let { result ->
+            val weeklyList = result.weekData.ifEmpty { result.allData }
+            val fallbackList = allRecord?.allData.orEmpty()
+            val list = if (weeklyList.size < MIN_RECORD_FALLBACK_SIZE && fallbackList.size > weeklyList.size) {
+                fallbackList
+            } else {
+                weeklyList
+            }.filter { it.song.id > 0 }
+                .distinctBy { it.song.id }
+                .take(100)
+            MineRecordStore.listeningRanks = list
+            _listeningRanks.value = list
+            NetCache.userCache.putJson(CACHE_KEY_LISTENING_RANK, list)
+        }
+        _recentPlaylists.value = MineRecordStore.virtualPlaylists()
     }
 
     private fun notifyPlaylist(uid: Long, list: List<PlaylistData>) {
@@ -101,5 +177,9 @@ class MineViewModel @Inject constructor() : ViewModel() {
 
     companion object {
         private const val CACHE_KEY = "my_playlist"
+        private const val CACHE_KEY_RECENT_PLAYLIST = "recent_playlist"
+        private const val CACHE_KEY_RECENT_SONGS = "recent_songs"
+        private const val CACHE_KEY_LISTENING_RANK = "listening_rank"
+        private const val MIN_RECORD_FALLBACK_SIZE = 10
     }
 }

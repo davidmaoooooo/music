@@ -18,4 +18,6 @@ object RoutePath {
     const val PLAYLIST_SQUARE = "/playlist/square"
     const val PLAYING = "/playing"
     const val RANKING = "/ranking"
+    const val SOURCE_MANAGE = "/source/manage"
+    const val MINE_RECORD_SONGS = "/mine/record/songs"
 }

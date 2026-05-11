@@ -1,12 +1,10 @@
 package me.wcy.music.main
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.media.audiofx.AudioEffect
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputFilter
+import android.text.InputType
 import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
@@ -14,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
@@ -27,9 +26,7 @@ import me.wcy.music.common.BaseMusicActivity
 import me.wcy.music.common.DarkModeService
 import me.wcy.music.consts.PreferenceName
 import me.wcy.music.net.MusicCacheManager
-import me.wcy.music.service.PlayerController
 import me.wcy.music.storage.preference.ConfigPreferences
-import me.wcy.music.utils.MusicUtils
 import me.wcy.router.CRouter
 import me.wcy.router.annotation.Route
 import top.wangchenyan.common.R as CommonR
@@ -56,11 +53,14 @@ class SettingsActivity : BaseMusicActivity() {
         private val darkMode: Preference by lazy {
             findPreference(getString(R.string.setting_key_dark_mode))!!
         }
-        private val soundEffect: Preference by lazy {
-            findPreference(getString(R.string.setting_key_sound_effect))!!
-        }
         private val themeColorMode: Preference by lazy {
             findPreference(getString(R.string.setting_key_theme_color_mode))!!
+        }
+        private val playSoundQuality: ListPreference by lazy {
+            findPreference(getString(R.string.setting_key_play_sound_quality))!!
+        }
+        private val downloadSoundQuality: ListPreference by lazy {
+            findPreference(getString(R.string.setting_key_download_sound_quality))!!
         }
         private val filterSize: Preference by lazy {
             findPreference(getString(R.string.setting_key_filter_size))!!
@@ -76,9 +76,6 @@ class SettingsActivity : BaseMusicActivity() {
         }
 
         @Inject
-        lateinit var playerController: PlayerController
-
-        @Inject
         lateinit var darkModeService: DarkModeService
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -88,7 +85,7 @@ class SettingsActivity : BaseMusicActivity() {
 
             initDarkMode()
             initThemeColor()
-            initSoundEffect()
+            initSoundQuality()
             initCache()
             initFilter()
         }
@@ -143,11 +140,50 @@ class SettingsActivity : BaseMusicActivity() {
             }
         }
 
-        private fun initSoundEffect() {
-            soundEffect.setOnPreferenceClickListener {
-                startEqualizer()
+        private fun initSoundQuality() {
+            bindSoundQualityPreference(playSoundQuality, ConfigPreferences.playSoundQuality)
+            bindSoundQualityPreference(downloadSoundQuality, ConfigPreferences.downloadSoundQuality)
+            updateSoundQualityEnabled()
+        }
+
+        private fun bindSoundQualityPreference(preference: ListPreference, currentValue: String) {
+            sanitizeSoundQuality(preference, currentValue)
+            preference.summary = getSoundQualitySummary(preference.value ?: "standard")
+            preference.setOnPreferenceChangeListener { _, newValue ->
+                val value = newValue.toString()
+                preference.summary = getSoundQualitySummary(value)
+                if (preference.key == getString(R.string.setting_key_play_sound_quality)) {
+                    me.wcy.music.net.datasource.OnlineMusicUriFetcher.clearPrefetchedUrls()
+                }
                 true
             }
+        }
+
+        private fun sanitizeSoundQuality(preference: ListPreference, currentValue: String) {
+            val values = resources.getStringArray(R.array.music_sound_quality_values)
+            if (currentValue !in values) {
+                preference.value = "standard"
+            }
+        }
+
+        private fun updateSoundQualityEnabled() {
+            val usingThirdPartySource = ConfigPreferences.thirdPartySourceEnabled
+            listOf(playSoundQuality, downloadSoundQuality).forEach { preference ->
+                preference.isEnabled = !usingThirdPartySource
+                preference.summary = if (usingThirdPartySource) {
+                    "第三方音源开启时不使用此设置"
+                } else {
+                    getSoundQualitySummary(preference.value ?: "standard")
+                }
+            }
+        }
+
+        private fun getSoundQualitySummary(value: String): String {
+            return getSummary(
+                value,
+                R.array.music_sound_quality_entries,
+                R.array.music_sound_quality_values
+            )
         }
 
         private fun initThemeColor() {
@@ -305,10 +341,8 @@ class SettingsActivity : BaseMusicActivity() {
 
         private fun initCache() {
             updateCacheSummary()
-            musicCacheLimit.setOnPreferenceChangeListener { _, newValue ->
-                val value = newValue.toString()
-                ConfigPreferences.musicCacheLimitMb = value
-                musicCacheLimit.summary = buildCacheLimitSummary(value)
+            musicCacheLimit.setOnPreferenceClickListener {
+                showCacheLimitDialog()
                 true
             }
             clearMusicCache.setOnPreferenceClickListener {
@@ -329,35 +363,53 @@ class SettingsActivity : BaseMusicActivity() {
         }
 
         private fun buildCacheLimitSummary(value: String): String {
-            val label = getSummary(
-                value,
-                R.array.music_cache_limit_entries,
-                R.array.music_cache_limit_values
-            )
+            val mb = value.toLongOrNull()?.coerceAtLeast(0L) ?: 200L
+            val label = if (mb == 0L) "不缓存歌曲" else "${mb}MB"
             val size = MusicCacheManager.formatSize(MusicCacheManager.getCacheSizeBytes())
             return "$label，当前 $size"
         }
 
-        private fun startEqualizer() {
-            if (MusicUtils.isAudioControlPanelAvailable(requireContext())) {
-                val intent = Intent()
-                val packageName = requireContext().packageName
-                intent.action = AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL
-                intent.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-                intent.putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
-                intent.putExtra(
-                    AudioEffect.EXTRA_AUDIO_SESSION,
-                    playerController.getAudioSessionId()
-                )
-                try {
-                    startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
-                    e.printStackTrace()
-                    toast(R.string.device_not_support)
-                }
-            } else {
-                toast(R.string.device_not_support)
+        private fun showCacheLimitDialog() {
+            val input = EditText(requireContext()).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setSingleLine(true)
+                setText(ConfigPreferences.musicCacheLimitMb)
+                setSelectAllOnFocus(true)
+                hint = "200"
             }
+            val content = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(24), dp(12), dp(24), dp(4))
+                addView(TextView(requireContext()).apply {
+                    text = "单位：MB，填 0 表示不缓存歌曲"
+                    setTextColor(requireContext().getColor(R.color.common_text_h2_color))
+                    textSize = 13f
+                })
+                addView(input, LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = dp(8)
+                })
+            }
+            AlertDialog.Builder(requireContext())
+                .setTitle("歌曲缓存上限")
+                .setView(content)
+                .setPositiveButton("确定") { _, _ ->
+                    val mb = input.text?.toString()?.trim()?.toLongOrNull()
+                    if (mb == null || mb < 0) {
+                        toast("请输入有效的 MB 数值")
+                    } else {
+                        ConfigPreferences.musicCacheLimitMb = mb.toString()
+                        preferenceManager.sharedPreferences
+                            ?.edit()
+                            ?.putString(getString(R.string.setting_key_music_cache_limit), mb.toString())
+                            ?.commit()
+                        updateCacheSummary()
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
         }
 
         private fun getSummary(value: String, entries: Int, values: Int): String {

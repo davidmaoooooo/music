@@ -77,6 +77,10 @@
             android:name=".main.DebugSettingsActivity"
             android:label="调试设置" />
         <activity
+            android:name=".source.ThirdPartySourceActivity"
+            android:label="音源管理"
+            android:theme="@style/AppTheme" />
+        <activity
             android:name=".main.playing.PlayingActivity"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.Popup" />

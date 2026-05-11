@@ -52,6 +52,7 @@ import me.wcy.music.listen.ListenTogetherDialog
 import me.wcy.music.listen.ListenTogetherManager
 import me.wcy.music.main.playlist.CurrentPlaylistFragment
 import me.wcy.music.mine.MineApi
+import me.wcy.music.net.datasource.OnlineMusicUriFetcher
 import me.wcy.music.service.PlayMode
 import me.wcy.music.service.PlayState
 import me.wcy.music.service.PlayerController
@@ -251,15 +252,14 @@ class PlayingActivity : BaseMusicActivity() {
         viewBinding.controlLayout.ivDownload.setOnClickListener {
             lifecycleScope.launch {
                 val song = playerController.currentSong.value ?: return@launch
-                val res = apiCall {
-                    DiscoverApi.get()
-                        .getSongUrl(song.getSongId(), "standard")
+                val res = runCatching {
+                    OnlineMusicUriFetcher.fetchNeteasePlayUrl(song.getSongId(), ConfigPreferences.downloadSoundQuality)
                 }
-                if (res.isSuccessWithData() && res.getDataOrThrow().isNotEmpty()) {
-                    val url = res.getDataOrThrow().first().url
+                val url = res.getOrDefault("")
+                if (url.isNotEmpty()) {
                     LaunchUtils.launchBrowser(this@PlayingActivity, url)
                 } else {
-                    toast(res.msg)
+                    toast(res.exceptionOrNull()?.message ?: "获取播放链接失败")
                 }
             }
         }

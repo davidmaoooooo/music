@@ -146,5 +146,6 @@ dependencies {
     implementation(libs.zbar)
     implementation(libs.blurry)
     implementation(libs.banner)
+    implementation(libs.quickjs)
     compileOnly("com.google.errorprone:error_prone_annotations:2.15.0")
 }

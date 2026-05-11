@@ -12,6 +12,8 @@
     <string name="setting_key_api_domain">api_domain</string>
     <string name="setting_key_listen_together_worker_url">listen_together_worker_url</string>
     <string name="setting_key_listen_together_debug_log">listen_together_debug_log</string>
+    <string name="setting_key_third_party_source_enabled">third_party_source_enabled</string>
+    <string name="setting_key_third_party_source_debug_log">third_party_source_debug_log</string>
     <string name="setting_key_song_request_cookie">song_request_cookie</string>
     <string name="setting_key_request_user_agent">request_user_agent</string>
 </resources>

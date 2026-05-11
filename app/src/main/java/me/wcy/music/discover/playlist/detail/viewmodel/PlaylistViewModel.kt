@@ -9,6 +9,7 @@ import me.wcy.music.common.bean.PlaylistData
 import me.wcy.music.common.bean.SongData
 import me.wcy.music.discover.DiscoverApi
 import me.wcy.music.mine.MineApi
+import me.wcy.music.mine.record.MineRecordStore
 import me.wcy.music.service.likesong.LikeSongProcessor
 import top.wangchenyan.common.ext.toUnMutable
 import top.wangchenyan.common.model.CommonResult
@@ -41,6 +42,14 @@ class PlaylistViewModel @Inject constructor() : ViewModel() {
     }
 
     suspend fun loadData(): CommonResult<Unit> = coroutineScope {
+        if (playlistId == MineRecordStore.RECENT_SONGS_ID ||
+            playlistId == MineRecordStore.LISTENING_RANK_ID
+        ) {
+            val songs = MineRecordStore.songsOfPlaylistId(playlistId)
+            _playlistData.value = MineRecordStore.playlistOf(playlistId)
+            _songList.value = songs
+            return@coroutineScope CommonResult.success(Unit)
+        }
         val detailDeferred = async {
             kotlin.runCatching {
                 DiscoverApi.get().getPlaylistDetail(playlistId)

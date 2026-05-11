@@ -10,6 +10,10 @@
             android:icon="@drawable/ic_link"
             android:title="一起听" />
         <item
+            android:id="@+id/action_source_manage"
+            android:icon="@drawable/ic_menu_domain"
+            android:title="音源管理" />
+        <item
             android:id="@+id/action_setting"
             android:icon="@drawable/ic_menu_settings"
             android:title="@string/menu_setting" />

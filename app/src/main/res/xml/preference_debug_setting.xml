@@ -25,6 +25,18 @@
             android:summary="开启后会把一起听收发指令和重连过程写入 Download 目录，平时建议关闭"
             android:title="一起听 Debug 抓取" />
 
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="@string/setting_key_third_party_source_enabled"
+            android:summary="默认关闭；开启后侧边栏显示音源导入入口，播放链接改为使用启用的第三方音源"
+            android:title="是否启用第三方音源" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="@string/setting_key_third_party_source_debug_log"
+            android:summary="开启后会把音源脚本请求、返回播放链接和播放打开过程写入 Download 目录，平时建议关闭"
+            android:title="音源 Debug 抓取" />
+
         <EditTextPreference
             android:key="@string/setting_key_song_request_cookie"
             android:selectAllOnFocus="false"

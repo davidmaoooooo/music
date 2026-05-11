@@ -44,11 +44,13 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import me.wcy.music.net.MusicCacheManager;
 import me.wcy.music.net.NeteaseHeaders;
+import me.wcy.music.source.ThirdPartySourceDebugLogger;
 
 /**
  * <p>
@@ -153,6 +155,7 @@ public final class MusicDataSource implements DataSource {
     }
 
     private static final String TAG = "DefaultDataSource";
+    private static final String RESOLVED_URL_ERROR_MESSAGE = "Request song url error";
 
     private static final String SCHEME_ASSET = "asset";
     private static final String SCHEME_CONTENT = "content";
@@ -319,14 +322,53 @@ public final class MusicDataSource implements DataSource {
             }
             String playUrl = OnlineMusicUriFetcher.INSTANCE.fetchPlayUrl(dataSpec.uri);
             if (playUrl == null || playUrl.length() == 0) {
-                throw new IOException("Request song url error");
+                ThirdPartySourceDebugLogger.INSTANCE.log(
+                        "player_resolved_url_empty",
+                        Collections.singletonMap("sourceUri", dataSpec.uri.toString())
+                );
+                throw new IOException(RESOLVED_URL_ERROR_MESSAGE);
             }
             MusicCacheDownloader.INSTANCE.cacheAsync(dataSpec.uri, playUrl);
             dataSource = baseDataSource;
+            Uri realUri = Uri.parse(playUrl);
+            Map<String, String> headers = buildHeadersForResolvedUrl(realUri, dataSpec.httpRequestHeaders);
+            ThirdPartySourceDebugLogger.INSTANCE.logUrl(
+                    "player_open_start",
+                    playUrl,
+                    mapOf(
+                            "songId", dataSpec.uri.getQueryParameter("id"),
+                            "position", dataSpec.position,
+                            "length", dataSpec.length,
+                            "headerNames", new ArrayList<>(headers.keySet()),
+                            "neteaseCdnHeadersApplied", isNeteaseCdn(realUri)
+                    )
+            );
             DataSpec realDataSpec = dataSpec.buildUpon()
-                    .setUri(Uri.parse(playUrl))
+                    .setUri(realUri)
+                    .setHttpRequestHeaders(headers)
                     .build();
-            return dataSource.open(realDataSpec);
+            try {
+                long result = dataSource.open(realDataSpec);
+                ThirdPartySourceDebugLogger.INSTANCE.log(
+                        "player_open_success",
+                        mapOf(
+                                "songId", dataSpec.uri.getQueryParameter("id"),
+                                "bytesToRead", result
+                        )
+                );
+                return result;
+            } catch (IOException e) {
+                ThirdPartySourceDebugLogger.INSTANCE.logUrl(
+                        "player_open_failed",
+                        playUrl,
+                        mapOf(
+                                "songId", dataSpec.uri.getQueryParameter("id"),
+                                "errorType", e.getClass().getSimpleName(),
+                                "errorMessage", e.getMessage()
+                        )
+                );
+                throw new IOException("Open resolved song url failed: " + safeHost(realUri) + " / " + e.getMessage(), e);
+            }
         } else {
             dataSource = baseDataSource;
         }
@@ -437,6 +479,38 @@ public final class MusicDataSource implements DataSource {
         for (int i = 0; i < transferListeners.size(); i++) {
             dataSource.addTransferListener(transferListeners.get(i));
         }
+    }
+
+    private Map<String, String> buildHeadersForResolvedUrl(Uri uri, Map<String, String> originalHeaders) {
+        HashMap<String, String> headers = new HashMap<>(originalHeaders);
+        if (isNeteaseCdn(uri)) {
+            headers.put("User-Agent", NeteaseHeaders.INSTANCE.getUserAgent());
+            headers.put("Referer", "https://music.163.com/");
+            headers.put("Origin", "https://music.163.com");
+            headers.put("Accept", "*/*");
+            if (!MusicCacheManager.INSTANCE.isMusicCacheAllowed()) {
+                headers.put("Cache-Control", "no-store");
+            }
+        }
+        return headers;
+    }
+
+    private boolean isNeteaseCdn(Uri uri) {
+        String host = uri.getHost();
+        return host != null && host.endsWith("music.126.net");
+    }
+
+    private Map<String, Object> mapOf(Object... values) {
+        HashMap<String, Object> map = new HashMap<>();
+        for (int i = 0; i + 1 < values.length; i += 2) {
+            map.put(String.valueOf(values[i]), values[i + 1]);
+        }
+        return map;
+    }
+
+    private String safeHost(Uri uri) {
+        String host = uri.getHost();
+        return host == null ? "" : host;
     }
 
     private void maybeAddListenerToDataSource(

@@ -5,6 +5,7 @@ import androidx.core.os.bundleOf
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import me.wcy.music.common.bean.SongData
+import me.wcy.music.net.datasource.OnlineMusicUriFetcher
 import me.wcy.music.storage.db.entity.SongEntity
 import me.wcy.music.utils.MusicUtils.asLargeCover
 import me.wcy.music.utils.MusicUtils.asSmallCover
@@ -28,23 +29,23 @@ fun SongData.getSimpleArtist(): String {
 }
 
 fun SongEntity.toMediaItem(): MediaItem {
-    return MediaItem.Builder()
-        .setMediaId(uniqueId)
-        .setUri(uri)
-        .setMediaMetadata(
-            MediaMetadata.Builder()
+    val metadataBuilder = MediaMetadata.Builder()
                 .setTitle(title)
                 .setArtist(artist)
                 .setAlbumTitle(album)
                 .setAlbumArtist(artist)
-                .setArtworkUri(Uri.parse(getLargeCover()))
                 .setBaseCover(albumCover)
                 .setDuration(duration)
                 .setFilePath(path)
                 .setFileName(fileName)
                 .setFileSize(fileSize)
-                .build()
-        )
+    if (type == SongEntity.LOCAL && albumCover.isNotBlank()) {
+        metadataBuilder.setArtworkUri(Uri.parse(albumCover))
+    }
+    return MediaItem.Builder()
+        .setMediaId(uniqueId)
+        .setUri(uri)
+        .setMediaMetadata(metadataBuilder.build())
         .build()
 }
 
@@ -67,10 +68,15 @@ fun MediaItem.toSongEntity(): SongEntity {
 }
 
 fun SongData.toMediaItem(sourcePlaylistId: Long = 0L): MediaItem {
+    OnlineMusicUriFetcher.rememberSongs(listOf(this))
     val uri = Uri.Builder()
         .scheme(SCHEME_NETEASE)
         .authority(CommonApp.app.packageName)
         .appendQueryParameter(PARAM_ID, id.toString())
+        .appendQueryParameter("name", name)
+        .appendQueryParameter("artist", getSimpleArtist())
+        .appendQueryParameter("album", al.name)
+        .appendQueryParameter("duration", dt.toString())
         .build()
     return MediaItem.Builder()
         .setMediaId(generateUniqueId(SongEntity.ONLINE, id))

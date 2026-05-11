@@ -207,6 +207,13 @@ class NeteaseDirectInterceptor : Interceptor {
                     "total" to "true"
                 )
             )
+            "search/suggest" -> {
+                val type = query["type"].orEmpty()
+                DirectRequest(
+                    if (type == "mobile") "/api/search/suggest/keyword" else "/api/search/suggest/web",
+                    mapOf("s" to query.required("keywords"))
+                )
+            }
             "user/playlist" -> DirectRequest(
                 "/api/user/playlist",
                 mapOf(
@@ -239,6 +246,29 @@ class NeteaseDirectInterceptor : Interceptor {
                 )
             )
             "likelist" -> DirectRequest("/api/song/like/get", mapOf("uid" to query.required("uid")))
+            "record/recent/playlist" -> DirectRequest(
+                "/api/playlist/play/record/list",
+                mapOf(
+                    "limit" to (query["limit"] ?: "20"),
+                    "offset" to (query["offset"] ?: "0"),
+                    "total" to "true"
+                )
+            )
+            "record/recent/song" -> DirectRequest(
+                "/api/play-record/song/list",
+                mapOf(
+                    "limit" to (query["limit"] ?: "100"),
+                    "offset" to (query["offset"] ?: "0"),
+                    "total" to "true"
+                )
+            )
+            "user/record" -> DirectRequest(
+                "/api/v1/play/record",
+                mapOf(
+                    "uid" to query.required("uid"),
+                    "type" to (query["type"] ?: "1")
+                )
+            )
             "comment/music" -> DirectRequest(
                 "/api/v1/resource/comments/R_SO_4_${query.required("id")}",
                 mapOf(

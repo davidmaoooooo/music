@@ -3,8 +3,8 @@
 compileSdk = "36"
 targetSdk = "36"
 minSdk = "23"
-versionCode = "2040001"
-versionName = "1.0.4"
+versionCode = "2040002"
+versionName = "1.0.5"
 # java
 java = "VERSION_17"
 # plugin
@@ -59,3 +59,4 @@ loggingInterceptor = { group = "com.github.ihsanbal", name = "LoggingInterceptor
 zbar = { group = "cn.bertsir.zbarLibary", name = "zbarlibary", version = "1.4.2" }
 blurry = { group = "jp.wasabeef", name = "blurry", version = "4.0.1" }
 banner = { group = "io.github.youth5201314", name = "banner", version = "2.2.2" }
+quickjs = { group = "wang.harlon.quickjs", name = "wrapper-android", version = "2.4.0" }

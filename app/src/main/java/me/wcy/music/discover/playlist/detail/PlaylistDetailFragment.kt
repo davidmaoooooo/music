@@ -29,6 +29,7 @@ import me.wcy.music.databinding.FragmentPlaylistDetailBinding
 import me.wcy.music.databinding.ItemPlaylistTagBinding
 import me.wcy.music.discover.playlist.detail.item.PlaylistSongItemBinder
 import me.wcy.music.discover.playlist.detail.viewmodel.PlaylistViewModel
+import me.wcy.music.mine.record.MineRecordStore
 import me.wcy.music.service.PlayerController
 import me.wcy.music.utils.ConvertUtils
 import me.wcy.music.utils.ImageUtils.loadCover
@@ -87,7 +88,7 @@ class PlaylistDetailFragment : BaseMusicFragment() {
         val id = getRouteArguments().getLongExtra("id", 0)
         val realtimeData = getRouteArguments().getBooleanExtra("realtime_data", false)
         val isLike = getRouteArguments().getBooleanExtra("is_like", false)
-        if (id <= 0) {
+        if (id <= 0 && id.isVirtualPlaylist().not()) {
             finish()
             return
         }
@@ -243,7 +244,10 @@ class PlaylistDetailFragment : BaseMusicFragment() {
                         )
                     )
                 }
-                if (playlistData != null && playlistData.creator.userId == userService.getUserId()) {
+                if (playlistData != null &&
+                    playlistData.id.isVirtualPlaylist().not() &&
+                    playlistData.creator.userId == userService.getUserId()
+                ) {
                     items.add(DeletePlaylistSongMenuItem(playlistData, item) {
                         viewModel.removeSong(it)
                     })
@@ -275,11 +279,20 @@ class PlaylistDetailFragment : BaseMusicFragment() {
             collectMenu?.isVisible = false
             return
         }
+        if (playlistData.id.isVirtualPlaylist()) {
+            collectMenu?.isVisible = false
+            return
+        }
         if (userService.getUserId() == playlistData.userId) {
             collectMenu?.isVisible = false
             return
         }
         collectMenu?.isVisible = true
         collectMenu?.isSelected = playlistData.subscribed
+    }
+
+    private fun Long.isVirtualPlaylist(): Boolean {
+        return this == MineRecordStore.RECENT_SONGS_ID ||
+            this == MineRecordStore.LISTENING_RANK_ID
     }
 }

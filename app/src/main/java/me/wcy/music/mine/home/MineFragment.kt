@@ -20,6 +20,7 @@ import me.wcy.music.consts.RoutePath
 import me.wcy.music.databinding.FragmentMineBinding
 import me.wcy.music.discover.DiscoverApi
 import me.wcy.music.main.MainActivity
+import me.wcy.music.mine.bean.MineVirtualPlaylist
 import me.wcy.music.mine.home.viewmodel.MineViewModel
 import me.wcy.music.mine.playlist.UserPlaylistItemBinder
 import me.wcy.music.service.PlayerController
@@ -120,6 +121,18 @@ class MineFragment : BaseMusicFragment() {
         val collectPlaylistAdapter = RAdapter<PlaylistData>().apply {
             register(UserPlaylistItemBinder(false, ItemClickListener(false, isLike = false)))
         }
+        val recentPlaylistAdapter = RAdapter<MineVirtualPlaylist>().apply {
+            register(MineVirtualPlaylistItemBinder(object : MineVirtualPlaylistItemBinder.OnItemClickListener {
+                override fun onItemClick(item: MineVirtualPlaylist) {
+                    CRouter.with(requireActivity())
+                        .url(RoutePath.PLAYLIST_DETAIL)
+                        .extra("id", item.id)
+                        .extra("realtime_data", false)
+                        .extra("is_like", false)
+                        .start()
+                }
+            }))
+        }
 
         val spacingDecoration = SpacingDecoration(SizeUtils.dp2px(10f))
         viewBinding.rvLikePlaylist.adapter = likePlaylistAdapter
@@ -135,10 +148,13 @@ class MineFragment : BaseMusicFragment() {
         viewBinding.rvMyPlaylist.adapter = myPlaylistAdapter
         viewBinding.rvCollectPlaylist.addItemDecoration(spacingDecoration)
         viewBinding.rvCollectPlaylist.adapter = collectPlaylistAdapter
+        viewBinding.rvRecentPlaylist.addItemDecoration(SpacingDecoration(SizeUtils.dp2px(10f)))
+        viewBinding.rvRecentPlaylist.adapter = recentPlaylistAdapter
 
         val updateVisible = {
             viewBinding.llLikePlaylist.isVisible = viewModel.likePlaylist.value != null
             viewBinding.llMyPlaylist.isVisible = viewModel.myPlaylists.value.isNotEmpty()
+            viewBinding.llRecentPlaylist.isVisible = viewModel.recentPlaylists.value.isNotEmpty()
             viewBinding.llCollectPlaylist.isVisible = viewModel.collectPlaylists.value.isNotEmpty()
         }
 
@@ -162,6 +178,13 @@ class MineFragment : BaseMusicFragment() {
                 updateVisible()
                 viewBinding.tvCollectPlaylist.text = "收藏歌单(${collectPlaylists.size})"
                 collectPlaylistAdapter.refresh(collectPlaylists)
+            }
+        }
+        lifecycleScope.launch {
+            viewModel.recentPlaylists.collectLatest { recentPlaylists ->
+                updateVisible()
+                viewBinding.tvRecentPlaylist.text = "最近播放与听歌排行"
+                recentPlaylistAdapter.refresh(recentPlaylists)
             }
         }
     }

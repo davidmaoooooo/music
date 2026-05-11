@@ -5,6 +5,7 @@ import top.wangchenyan.common.net.gson.GsonConverterFactory
 import top.wangchenyan.common.utils.GsonUtils
 import me.wcy.music.net.HttpClient
 import me.wcy.music.search.bean.SearchResultData
+import me.wcy.music.search.bean.SearchSuggestData
 import me.wcy.music.storage.preference.ConfigPreferences
 import retrofit2.Retrofit
 import retrofit2.http.POST
@@ -37,6 +38,12 @@ interface SearchApi {
         @Query("limit") limit: Int,
         @Query("offset") offset: Int,
     ): NetResult<SearchResultData>
+
+    @POST("search/suggest")
+    suspend fun suggest(
+        @Query("keywords") keywords: String,
+        @Query("type") type: String = "mobile",
+    ): NetResult<SearchSuggestData>
 
     companion object {
         private val api: SearchApi by lazy {

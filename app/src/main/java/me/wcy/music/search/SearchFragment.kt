@@ -3,6 +3,7 @@ package me.wcy.music.search
 import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import androidx.core.widget.doAfterTextChanged
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -16,6 +17,7 @@ import me.wcy.music.common.BaseMusicFragment
 import me.wcy.music.consts.RoutePath
 import me.wcy.music.databinding.FragmentSearchBinding
 import me.wcy.music.databinding.ItemSearchHistoryBinding
+import me.wcy.music.databinding.ItemSearchSuggestBinding
 import me.wcy.music.databinding.TitleSearchBinding
 import me.wcy.music.search.playlist.SearchPlaylistFragment
 import me.wcy.music.search.artist.SearchArtistFragment
@@ -77,13 +79,22 @@ class SearchFragment : BaseMusicFragment() {
             }
             return@setOnEditorActionListener false
         }
+        titleBinding.etSearch.doAfterTextChanged {
+            viewModel.onInputChanged(it?.toString().orEmpty())
+        }
         menuSearch.setOnClickListener {
             val keywords = titleBinding.etSearch.text?.trim()?.toString() ?: ""
             if (keywords.isNotEmpty()) {
-                KeyboardUtils.hideSoftInput(requireActivity())
-                viewModel.search(keywords)
+                doSearch(keywords)
             }
         }
+    }
+
+    private fun doSearch(keywords: String) {
+        KeyboardUtils.hideSoftInput(requireActivity())
+        titleBinding.etSearch.setText(keywords)
+        titleBinding.etSearch.setSelection(keywords.length)
+        viewModel.search(keywords)
     }
 
     private fun initTab() {
@@ -102,6 +113,24 @@ class SearchFragment : BaseMusicFragment() {
     private fun initHistory() {
         viewBinding.tvClearHistory.setOnClickListener {
             viewModel.clearHistory()
+        }
+        lifecycleScope.launch {
+            viewModel.suggestKeywords.collectLatest { list ->
+                viewBinding.llSuggest.isVisible = list.isNotEmpty()
+                viewBinding.llSuggest.removeAllViews()
+                list.forEach { text ->
+                    ItemSearchSuggestBinding.inflate(
+                        LayoutInflater.from(context),
+                        viewBinding.llSuggest,
+                        true
+                    ).apply {
+                        tvSuggest.text = text
+                        root.setOnClickListener {
+                            doSearch(text)
+                        }
+                    }
+                }
+            }
         }
         lifecycleScope.launch {
             viewModel.historyKeywords.collectLatest { list ->

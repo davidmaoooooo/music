@@ -15,7 +15,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.wcy.music.discover.DiscoverApi
@@ -61,6 +60,7 @@ class PlayerControllerImpl(
     private var applyingRemote = false
     private var heartModeSession: HeartModeSession? = null
     private var heartModeAppendJob: Job? = null
+    private var progressJob: Job? = null
     private val restoreJob: Job
 
     init {
@@ -70,17 +70,20 @@ class PlayerControllerImpl(
                 super.onPlaybackStateChanged(playbackState)
                 when (playbackState) {
                     Player.STATE_IDLE -> {
+                        stopProgressUpdates(reset = true)
                         _playState.value = PlayState.Idle
                         _playProgress.value = 0
                         _bufferingPercent.value = 0
                     }
 
                     Player.STATE_BUFFERING -> {
+                        stopProgressUpdates(reset = false)
                         _playState.value = PlayState.Preparing
                     }
 
                     Player.STATE_READY -> {
                         _playState.value = if (player.isPlaying) PlayState.Playing else PlayState.Pause
+                        updateProgressUpdates(player.isPlaying)
                     }
 
                     Player.STATE_ENDED -> {
@@ -92,6 +95,7 @@ class PlayerControllerImpl(
                 super.onIsPlayingChanged(isPlaying)
                 if (player.playbackState == Player.STATE_READY) {
                     _playState.value = if (isPlaying) PlayState.Playing else PlayState.Pause
+                    updateProgressUpdates(isPlaying)
                     if (!applyingRemote) {
                         ListenTogetherManager.onLocalPlayStateChanged(isPlaying)
                     }
@@ -169,14 +173,6 @@ class PlayerControllerImpl(
             }
         }
 
-        launch {
-            while (isActive) {
-                if (player.isPlaying) {
-                    _playProgress.value = player.currentPosition
-                }
-                delay(1000)
-            }
-        }
     }
 
     @MainThread
@@ -505,7 +501,35 @@ class PlayerControllerImpl(
     @MainThread
     override fun stop() {
         player.stop()
+        stopProgressUpdates(reset = true)
         _playState.value = PlayState.Idle
+    }
+
+    private fun updateProgressUpdates(isPlaying: Boolean) {
+        if (isPlaying) {
+            startProgressUpdates()
+        } else {
+            _playProgress.value = player.currentPosition
+            stopProgressUpdates(reset = false)
+        }
+    }
+
+    private fun startProgressUpdates() {
+        if (progressJob?.isActive == true) return
+        progressJob = launch(Dispatchers.Main.immediate) {
+            while (true) {
+                _playProgress.value = player.currentPosition
+                delay(1000)
+            }
+        }
+    }
+
+    private fun stopProgressUpdates(reset: Boolean) {
+        progressJob?.cancel()
+        progressJob = null
+        if (reset) {
+            _playProgress.value = 0
+        }
     }
 
     private fun maybeAppendHeartModeSongs(current: MediaItem?) {

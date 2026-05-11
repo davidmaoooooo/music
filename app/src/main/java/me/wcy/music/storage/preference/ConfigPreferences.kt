@@ -80,6 +80,26 @@ object ConfigPreferences :
         false
     )
 
+    var thirdPartySourceEnabled: Boolean by IPreferencesFile.BooleanProperty(
+        "third_party_source_enabled",
+        false
+    )
+
+    var thirdPartySourceDebugLog: Boolean by IPreferencesFile.BooleanProperty(
+        "third_party_source_debug_log",
+        false
+    )
+
+    var thirdPartySourceListJson: String by IPreferencesFile.StringProperty(
+        "third_party_source_list_json",
+        "[]"
+    )
+
+    var thirdPartySourceSelectedId: String by IPreferencesFile.StringProperty(
+        "third_party_source_selected_id",
+        ""
+    )
+
     var songRequestCookie: String by IPreferencesFile.StringProperty("song_request_cookie", "")
 
     var requestUserAgent: String by IPreferencesFile.StringProperty(
