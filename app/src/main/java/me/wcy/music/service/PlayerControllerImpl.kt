@@ -117,6 +117,12 @@ class PlayerControllerImpl(
             ) {
                 super.onPositionDiscontinuity(oldPosition, newPosition, reason)
                 _playProgress.value = player.currentPosition
+                if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION &&
+                    oldPosition.mediaItemIndex == newPosition.mediaItemIndex &&
+                    newPosition.positionMs < oldPosition.positionMs
+                ) {
+                    scrobbledMediaId = null
+                }
                 if (!applyingRemote && reason == Player.DISCONTINUITY_REASON_SEEK) {
                     ListenTogetherManager.onLocalSeek(player.currentPosition)
                 }
