@@ -16,6 +16,7 @@ interface PlayerController {
     val playProgress: StateFlow<Long>
     val bufferingPercent: StateFlow<Int>
     val playMode: StateFlow<PlayMode>
+    val heartModeEnabled: StateFlow<Boolean>
 
     @MainThread
     fun addAndPlay(song: MediaItem)

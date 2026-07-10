@@ -289,6 +289,12 @@ class NeteaseDirectInterceptor : Interceptor {
                 ),
                 API_HOST
             )
+            "scrobble" -> DirectRequest(
+                "/api/feedback/weblog",
+                mapOf(
+                    "logs" to """[{"action":"play","json":{"download":0,"end":"playend","id":${query.required("id")},"sourceId":${query["sourceid"] ?: "0"},"time":${query["time"] ?: "0"},"type":"song","wifi":0,"source":"list","mainsite":1,"content":""}}]"""
+                )
+            )
             else -> null
         }
     }

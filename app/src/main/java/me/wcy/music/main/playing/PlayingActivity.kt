@@ -406,6 +406,11 @@ class PlayingActivity : BaseMusicActivity() {
                 viewBinding.controlLayout.ivMode.setImageLevel(playMode.value)
             }
         }
+        lifecycleScope.launch {
+            playerController.heartModeEnabled.collectLatest { enabled ->
+                viewBinding.controlLayout.ivHeartMode.isSelected = enabled
+            }
+        }
 
         viewBinding.controlLayout.ivMode.setOnClickListener {
             switchPlayMode()

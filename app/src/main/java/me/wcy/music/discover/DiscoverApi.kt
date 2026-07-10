@@ -1,5 +1,6 @@
 package me.wcy.music.discover
 
+import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.wcy.music.common.bean.LrcDataWrap
@@ -100,6 +101,13 @@ interface DiscoverApi {
         @Query("sid") sid: Long = id,
         @Query("count") count: Int = 20,
     ): HeartModeData
+
+    @POST("scrobble")
+    suspend fun scrobble(
+        @Query("id") id: Long,
+        @Query("time") time: Long,
+        @Query("sourceid") sourceId: Long = 0L,
+    ): JsonObject
 
     @POST("comment/music")
     suspend fun getMusicComments(

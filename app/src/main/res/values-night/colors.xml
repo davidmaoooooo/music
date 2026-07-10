@@ -9,6 +9,8 @@
     <color name="playing_surface">#171312</color>
     <color name="playing_on_surface">#F1DEDB</color>
     <color name="playing_on_surface_variant">#D8C2BE</color>
+    <color name="playing_heart_mode_background">#F1DEDB</color>
+    <color name="playing_heart_mode_on_icon">#171312</color>
 
     <color name="common_theme_color" tools:override="true">@color/red_700</color>
     <color name="common_background_color" tools:override="true">#303030</color>

@@ -92,12 +92,12 @@
             android:layout_height="44dp"
             android:layout_gravity="center"
             android:layout_marginHorizontal="4dp"
-            android:background="@drawable/bg_playing_icon_button"
+            android:background="@drawable/bg_playing_heart_mode_button"
             android:contentDescription="心动模式"
             android:padding="11dp"
             android:scaleType="centerInside"
             android:src="@drawable/ic_radio"
-            app:tint="@color/playing_on_surface" />
+            app:tint="@color/tint_playing_heart_mode_button" />
 
         <ImageView
             android:id="@+id/ivMore"

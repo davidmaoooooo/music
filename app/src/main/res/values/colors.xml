@@ -32,6 +32,8 @@
     <color name="playing_surface">#FFFDFC</color>
     <color name="playing_on_surface">#211A19</color>
     <color name="playing_on_surface_variant">#6F5F5C</color>
+    <color name="playing_heart_mode_background">#211A19</color>
+    <color name="playing_heart_mode_on_icon">#FFFDFC</color>
 
     <color name="common_theme_color" tools:override="true">@color/red_500</color>
     <color name="common_background_color" tools:override="true">#FAFAFA</color>

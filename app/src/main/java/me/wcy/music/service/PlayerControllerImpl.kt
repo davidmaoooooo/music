@@ -21,7 +21,10 @@ import me.wcy.music.discover.DiscoverApi
 import me.wcy.music.listen.ListenTogetherManager
 import me.wcy.music.storage.db.MusicDatabase
 import me.wcy.music.storage.preference.ConfigPreferences
+import me.wcy.music.utils.getDuration
 import me.wcy.music.utils.getSongId
+import me.wcy.music.utils.getSourcePlaylistId
+import me.wcy.music.utils.isLocal
 import me.wcy.music.utils.toMediaItem
 import me.wcy.music.utils.toSongEntity
 import top.wangchenyan.common.ext.toUnMutable
@@ -56,10 +59,15 @@ class PlayerControllerImpl(
     private val _playMode = MutableStateFlow(PlayMode.valueOf(ConfigPreferences.playMode))
     override val playMode: StateFlow<PlayMode> = _playMode
 
+    private val _heartModeEnabled = MutableStateFlow(false)
+    override val heartModeEnabled = _heartModeEnabled.toUnMutable()
+
     private var audioSessionId = 0
     private var applyingRemote = false
     private var heartModeSession: HeartModeSession? = null
     private var heartModeAppendJob: Job? = null
+    private var scrobbleJob: Job? = null
+    private var scrobbledMediaId: String? = null
     private var progressJob: Job? = null
     private val restoreJob: Job
 
@@ -120,6 +128,9 @@ class PlayerControllerImpl(
                 val playlist = _playlist.value
                 val current = playlist.find { it.mediaId == mediaItem.mediaId }
                 _currentSong.value = current
+                if (scrobbledMediaId != mediaItem.mediaId) {
+                    scrobbledMediaId = null
+                }
                 maybeAppendHeartModeSongs(current)
                 if (!applyingRemote) {
                     ListenTogetherManager.onLocalSongChanged(current)
@@ -241,6 +252,7 @@ class PlayerControllerImpl(
                 }
                 val sessionSongs = listOf(seedSong) + songs.filterNot { it.mediaId == seedSong.mediaId }
                 heartModeSession = HeartModeSession(playlistId)
+                _heartModeEnabled.value = true
                 if (_currentSong.value?.mediaId == seedSong.mediaId) {
                     replaceUpcomingInternal(
                         songs.filterNot { it.mediaId == seedSong.mediaId },
@@ -344,6 +356,7 @@ class PlayerControllerImpl(
         _currentSong.value = playlist[index]
         _playProgress.value = 0
         _bufferingPercent.value = 0
+        scrobbledMediaId = null
     }
 
     @MainThread
@@ -518,7 +531,9 @@ class PlayerControllerImpl(
         if (progressJob?.isActive == true) return
         progressJob = launch(Dispatchers.Main.immediate) {
             while (true) {
-                _playProgress.value = player.currentPosition
+                val position = player.currentPosition
+                _playProgress.value = position
+                maybeScrobbleCurrentSong(position)
                 delay(1000)
             }
         }
@@ -579,6 +594,30 @@ class PlayerControllerImpl(
         heartModeSession = null
         heartModeAppendJob?.cancel()
         heartModeAppendJob = null
+        _heartModeEnabled.value = false
+    }
+
+    private fun maybeScrobbleCurrentSong(position: Long) {
+        val current = _currentSong.value ?: return
+        if (current.isLocal()) return
+        if (current.getSongId() <= 0) return
+        if (scrobbledMediaId == current.mediaId) return
+        if (scrobbleJob?.isActive == true) return
+        val duration = current.mediaMetadata.getDuration()
+        if (duration <= 0) return
+        val threshold = minOf(duration / 2, SCROBBLE_MAX_THRESHOLD_MS)
+        if (position < threshold) return
+
+        scrobbledMediaId = current.mediaId
+        scrobbleJob = launch(Dispatchers.IO) {
+            kotlin.runCatching {
+                DiscoverApi.get().scrobble(
+                    id = current.getSongId(),
+                    sourceId = current.getSourcePlaylistId(),
+                    time = (position / 1000).coerceAtLeast(1L)
+                )
+            }
+        }
     }
 
     private data class HeartModeSession(
@@ -588,5 +627,6 @@ class PlayerControllerImpl(
     private companion object {
         private const val HEART_MODE_FETCH_COUNT = 30
         private const val HEART_MODE_APPEND_THRESHOLD = 3
+        private const val SCROBBLE_MAX_THRESHOLD_MS = 60_000L
     }
 }

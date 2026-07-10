@@ -39,8 +39,13 @@ fun SongEntity.toMediaItem(): MediaItem {
                 .setFilePath(path)
                 .setFileName(fileName)
                 .setFileSize(fileSize)
-    if (type == SongEntity.LOCAL && albumCover.isNotBlank()) {
-        metadataBuilder.setArtworkUri(Uri.parse(albumCover))
+    if (albumCover.isNotBlank()) {
+        val artworkUri = if (type == SongEntity.LOCAL) {
+            albumCover
+        } else {
+            albumCover.asLargeCover()
+        }
+        metadataBuilder.setArtworkUri(Uri.parse(artworkUri))
     }
     return MediaItem.Builder()
         .setMediaId(uniqueId)
