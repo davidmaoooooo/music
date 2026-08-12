@@ -75,4 +75,23 @@
             android:summary="不过滤"
             android:title="按时长过滤" />
     </PreferenceCategory>
+    <PreferenceCategory android:title="心动模式">
+        <ListPreference
+            android:defaultValue="current"
+            android:dialogTitle="拉取锚点"
+            android:entries="@array/heart_mode_anchor_entries"
+            android:entryValues="@array/heart_mode_anchor_values"
+            android:key="@string/setting_key_heart_mode_anchor"
+            android:summary="当前播放歌曲"
+            android:title="拉取锚点" />
+
+        <ListPreference
+            android:defaultValue="standard"
+            android:dialogTitle="风格相关性"
+            android:entries="@array/heart_mode_style_entries"
+            android:entryValues="@array/heart_mode_style_values"
+            android:key="@string/setting_key_heart_mode_style"
+            android:summary="标准模式（强相关）"
+            android:title="风格相关性" />
+    </PreferenceCategory>
 </PreferenceScreen>

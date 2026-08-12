@@ -17,8 +17,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.wcy.music.account.service.UserServiceModule.Companion.userService
 import me.wcy.music.discover.DiscoverApi
+import me.wcy.music.discover.playlist.detail.bean.HeartModeItemData
 import me.wcy.music.listen.ListenTogetherManager
+import me.wcy.music.mine.MineApi
 import me.wcy.music.storage.db.MusicDatabase
 import me.wcy.music.storage.preference.ConfigPreferences
 import me.wcy.music.utils.getDuration
@@ -27,6 +30,7 @@ import me.wcy.music.utils.getSourcePlaylistId
 import me.wcy.music.utils.isLocal
 import me.wcy.music.utils.toMediaItem
 import me.wcy.music.utils.toSongEntity
+import top.wangchenyan.common.CommonApp
 import top.wangchenyan.common.ext.toUnMutable
 import top.wangchenyan.common.ext.toast
 
@@ -66,6 +70,7 @@ class PlayerControllerImpl(
     private var applyingRemote = false
     private var heartModeSession: HeartModeSession? = null
     private var heartModeAppendJob: Job? = null
+    private var appOpenSongId: Long = 0
     private var scrobbleJob: Job? = null
     private var scrobbledMediaId: String? = null
     private var progressJob: Job? = null
@@ -185,6 +190,7 @@ class PlayerControllerImpl(
 
         launch(Dispatchers.Main.immediate) {
             restoreJob.join()
+            appOpenSongId = _currentSong.value?.getSongId() ?: 0
             _currentSong.collectLatest {
                 ConfigPreferences.currentSongId = it?.mediaId ?: ""
             }
@@ -244,10 +250,14 @@ class PlayerControllerImpl(
         heartModeAppendJob = launch(Dispatchers.Main.immediate) {
             restoreJob.join()
             kotlin.runCatching {
+                val anchorId = withContext(Dispatchers.IO) {
+                    resolveHeartModeAnchor(seedSongId)
+                }
                 val songs = withContext(Dispatchers.IO) {
                     DiscoverApi.get()
-                        .getHeartModeSongs(seedSongId, playlistId, sid = seedSongId, count = HEART_MODE_FETCH_COUNT)
+                        .getHeartModeSongs(anchorId, playlistId, sid = anchorId, count = HEART_MODE_FETCH_COUNT)
                         .data
+                        .let(::filterHeartModeItems)
                         .map { it.songInfo }
                         .filter { it.id > 0 }
                         .distinctBy { it.id }
@@ -257,7 +267,7 @@ class PlayerControllerImpl(
                     throw IllegalStateException("没有拿到心动推荐")
                 }
                 val sessionSongs = listOf(seedSong) + songs.filterNot { it.mediaId == seedSong.mediaId }
-                heartModeSession = HeartModeSession(playlistId)
+                heartModeSession = HeartModeSession(playlistId, anchorId, anchorId)
                 _heartModeEnabled.value = true
                 if (_currentSong.value?.mediaId == seedSong.mediaId) {
                     replaceUpcomingInternal(
@@ -553,6 +563,27 @@ class PlayerControllerImpl(
         }
     }
 
+    /**
+     * 根据设置解析心动模式的拉取锚点
+     * - current: 当前播放歌曲（默认）
+     * - app_open: 应用打开时（上次会话恢复）的歌曲
+     * - favorite_random: 我喜欢的音乐歌单中的随机歌曲
+     */
+    private suspend fun resolveHeartModeAnchor(seedSongId: Long): Long {
+        return when (ConfigPreferences.heartModeAnchor) {
+            "app_open" -> appOpenSongId.takeIf { it > 0 } ?: seedSongId
+            "favorite_random" -> runCatching {
+                val uid = CommonApp.app.userService().getUserId()
+                if (uid > 0) {
+                    MineApi.get().getMyLikeSongList(uid).ids.randomOrNull()
+                } else {
+                    null
+                }
+            }.getOrNull() ?: seedSongId
+            else -> seedSongId
+        }
+    }
+
     private fun maybeAppendHeartModeSongs(current: MediaItem?) {
         val session = heartModeSession ?: return
         current ?: return
@@ -562,8 +593,9 @@ class PlayerControllerImpl(
         if (currentIndex < 0) return
         if (playlist.size - currentIndex - 1 > HEART_MODE_APPEND_THRESHOLD) return
 
-        val seedSongId = current.getSongId()
-        if (seedSongId <= 0) return
+        val seedSongId = session.seedSongId
+        val lastMusicId = session.lastMusicId
+        if (seedSongId <= 0 || lastMusicId <= 0) return
         heartModeAppendJob = launch(Dispatchers.Main.immediate) {
             kotlin.runCatching {
                 val newSongs = withContext(Dispatchers.IO) {
@@ -571,19 +603,38 @@ class PlayerControllerImpl(
                         .getHeartModeSongs(
                             seedSongId,
                             session.playlistId,
-                            sid = seedSongId,
+                            sid = lastMusicId,
                             count = HEART_MODE_FETCH_COUNT
                         )
                         .data
+                        .let(::filterHeartModeItems)
                         .map { it.songInfo }
                         .filter { it.id > 0 }
-                        .distinctBy { it.id }
-                        .map { it.toMediaItem(session.playlistId) }
                 }
+                val lastId = newSongs.lastOrNull()?.id
+                val distinctSongs = newSongs
+                    .distinctBy { it.id }
+                    .map { it.toMediaItem(session.playlistId) }
                 val existingIds = _playlist.value.mapTo(mutableSetOf()) { it.mediaId }
-                newSongs.filterNot { it.mediaId in existingIds }
-            }.onSuccess { appendList ->
-                if (appendList.isEmpty()) return@onSuccess
+                distinctSongs.filterNot { it.mediaId in existingIds } to lastId
+            }.onSuccess { (appendList, lastId) ->
+                // 无论是否还有新歌，都推进翻页游标，避免下一轮重复拉同一批
+                if (lastId != null && lastId > 0) {
+                    val sessionNow = heartModeSession
+                    if (sessionNow != null) {
+                        sessionNow.lastMusicId = lastId
+                    }
+                }
+                if (appendList.isEmpty()) {
+                    // 当前锚点的推荐池已翻完：以当前播放歌曲为锚重新开始一轮
+                    val currentSongId = _currentSong.value?.getSongId() ?: return@onSuccess
+                    val sessionNow = heartModeSession
+                    if (sessionNow != null && currentSongId > 0) {
+                        sessionNow.seedSongId = currentSongId
+                        sessionNow.lastMusicId = currentSongId
+                    }
+                    return@onSuccess
+                }
                 val merged = _playlist.value + appendList
                 _playlist.value = merged
                 appendList.forEach { player.addMediaItem(it) }
@@ -602,6 +653,21 @@ class PlayerControllerImpl(
         heartModeAppendJob = null
         _heartModeEnabled.value = false
     }
+    /**
+     * 根据设置过滤推荐列表：
+     * - standard（标准模式/强相关）：只保留 recommended = false 的强相关推荐，
+     *   过滤掉探索类算法（mae/tiger 多兴趣向量召回）带来的风格跳跃；
+     * - explore（探索模式/弱相关）：保留全部推荐。
+     * 过滤后为空则退回全量，避免队列断供。
+     */
+    private fun filterHeartModeItems(items: List<HeartModeItemData>): List<HeartModeItemData> {
+        if (ConfigPreferences.heartModeStyle != "standard") {
+            return items
+        }
+        val related = items.filterNot { it.recommended }
+        return related.ifEmpty { items }
+    }
+
 
     private fun maybeScrobbleCurrentSong(position: Long) {
         val current = _currentSong.value ?: return
@@ -627,7 +693,9 @@ class PlayerControllerImpl(
     }
 
     private data class HeartModeSession(
-        val playlistId: Long
+        val playlistId: Long,
+        var seedSongId: Long,
+        var lastMusicId: Long,
     )
 
     private companion object {

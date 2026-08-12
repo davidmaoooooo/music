@@ -74,6 +74,12 @@ class SettingsActivity : BaseMusicActivity() {
         private val clearMusicCache: Preference by lazy {
             findPreference(getString(R.string.setting_key_clear_music_cache))!!
         }
+        private val heartModeAnchor: ListPreference by lazy {
+            findPreference(getString(R.string.setting_key_heart_mode_anchor))!!
+        }
+        private val heartModeStyle: ListPreference by lazy {
+            findPreference(getString(R.string.setting_key_heart_mode_style))!!
+        }
 
         @Inject
         lateinit var darkModeService: DarkModeService
@@ -88,6 +94,7 @@ class SettingsActivity : BaseMusicActivity() {
             initSoundQuality()
             initCache()
             initFilter()
+            initHeartMode()
         }
 
         override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -107,6 +114,38 @@ class SettingsActivity : BaseMusicActivity() {
                     }
                 }
                 false
+            }
+        }
+
+        private fun initHeartMode() {
+            bindHeartModePreference(
+                heartModeAnchor,
+                ConfigPreferences.heartModeAnchor
+            ) { value ->
+                when (value) {
+                    "app_open" -> "应用打开时歌曲"
+                    "favorite_random" -> "我喜欢的音乐中的随机歌曲"
+                    else -> "当前播放歌曲"
+                }
+            }
+            bindHeartModePreference(
+                heartModeStyle,
+                ConfigPreferences.heartModeStyle
+            ) { value ->
+                if (value == "explore") "探索模式（弱相关）" else "标准模式（强相关）"
+            }
+        }
+
+        private fun bindHeartModePreference(
+            preference: ListPreference,
+            currentValue: String,
+            summaryProvider: (String) -> String
+        ) {
+            val value = preference.value ?: currentValue
+            preference.summary = summaryProvider(value)
+            preference.setOnPreferenceChangeListener { _, newValue ->
+                preference.summary = summaryProvider(newValue.toString())
+                true
             }
         }
 

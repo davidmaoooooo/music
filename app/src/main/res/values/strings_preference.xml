@@ -16,4 +16,6 @@
     <string name="setting_key_third_party_source_debug_log">third_party_source_debug_log</string>
     <string name="setting_key_song_request_cookie">song_request_cookie</string>
     <string name="setting_key_request_user_agent">request_user_agent</string>
+    <string name="setting_key_heart_mode_anchor">heart_mode_anchor</string>
+    <string name="setting_key_heart_mode_style">heart_mode_style</string>
 </resources>

@@ -150,4 +150,25 @@
         <item>1024</item>
         <item>2048</item>
     </string-array>
+    <string-array name="heart_mode_anchor_entries">
+        <item>当前播放歌曲</item>
+        <item>应用打开时歌曲</item>
+        <item>我喜欢的音乐中的随机歌曲</item>
+    </string-array>
+
+    <string-array name="heart_mode_anchor_values">
+        <item>current</item>
+        <item>app_open</item>
+        <item>favorite_random</item>
+    </string-array>
+
+    <string-array name="heart_mode_style_entries">
+        <item>探索模式（弱相关）</item>
+        <item>标准模式（强相关）</item>
+    </string-array>
+
+    <string-array name="heart_mode_style_values">
+        <item>explore</item>
+        <item>standard</item>
+    </string-array>
 </resources>

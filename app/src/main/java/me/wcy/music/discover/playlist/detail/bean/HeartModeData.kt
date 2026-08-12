@@ -12,5 +12,9 @@ data class HeartModeData(
 
 data class HeartModeItemData(
     @SerializedName("songInfo", alternate = ["song", "simpleSong"])
-    val songInfo: SongData = SongData()
+    val songInfo: SongData = SongData(),
+    @SerializedName("alg")
+    val alg: String = "",
+    @SerializedName("recommended")
+    val recommended: Boolean = false,
 )

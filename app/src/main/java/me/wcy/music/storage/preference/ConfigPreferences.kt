@@ -48,6 +48,9 @@ object ConfigPreferences :
     var customThemeColorHex by IPreferencesFile.StringProperty("custom_theme_color_hex", "#00897B")
 
     var playMode: Int by IPreferencesFile.IntProperty("play_mode", 0)
+    var heartModeAnchor: String by IPreferencesFile.StringProperty("heart_mode_anchor", "current")
+
+    var heartModeStyle: String by IPreferencesFile.StringProperty("heart_mode_style", "standard")
 
     var currentSongId: String by IPreferencesFile.StringProperty("current_song_id", "")
 
