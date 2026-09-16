@@ -109,7 +109,7 @@ class LikeSongProcessorImpl @Inject constructor(
                 op = if (like) "add" else "del"
             )
         }.getOrNull() ?: return false
-        if (result.status != 200) return false
-        return result.body.code == 200 || result.body.code == 502
+        // 与 like 接口一致：NetResult 直接按顶层 code 判断
+        return result.code == 200 || result.code == 502
     }
 }
