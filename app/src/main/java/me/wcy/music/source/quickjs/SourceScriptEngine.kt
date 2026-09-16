@@ -64,7 +64,11 @@ class SourceScriptEngine(
         }
     }
 
-    fun requestMusicUrl(info: ThirdPartyMusicInfo): Result<String> {
+    @JvmOverloads
+    fun requestMusicUrl(
+        info: ThirdPartyMusicInfo,
+        timeoutMs: Long = REQUEST_TIMEOUT_MS
+    ): Result<String> {
         if (!loaded) return Result.failure(IllegalStateException("第三方音源未初始化"))
         val payload = buildMusicUrlPayload(info)
         val requestKey = UUID.randomUUID().toString()
@@ -105,14 +109,14 @@ class SourceScriptEngine(
                 latch.countDown()
             }
         }
-        if (!latch.await(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+        if (!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
             pendingResponses.remove(requestKey)
             ThirdPartySourceDebugLogger.log(
                 "script_music_url_timeout",
                 mapOf(
                     "requestKey" to requestKey,
                     "songId" to info.id,
-                    "timeoutMs" to REQUEST_TIMEOUT_MS
+                    "timeoutMs" to timeoutMs
                 )
             )
             return Result.failure(IllegalStateException("第三方音源请求超时"))
@@ -382,7 +386,8 @@ class SourceScriptEngine(
     companion object {
         private const val TAG = "ThirdPartySourceScript"
         private const val LOAD_TIMEOUT_MS = 10_000L
-        private const val REQUEST_TIMEOUT_MS = 30_000L
+        /** 单个音源请求超时。失效音源要尽快让位给下一个，不宜等待过久。 */
+        private const val REQUEST_TIMEOUT_MS = 12_000L
         private val pendingResponses = ConcurrentHashMap<String, PendingResponse>()
     }
 

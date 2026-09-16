@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="填写音源脚本直链（http:// 或 https:// 开头）"
+        android:textColor="@color/common_text_h2_color"
+        android:textSize="13sp" />
+
+    <EditText
+        android:id="@+id/etSourceUrl"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_dialog_input"
+        android:hint="https://example.com/lx-music-source.js"
+        android:importantForAutofill="no"
+        android:inputType="textUri"
+        android:maxLines="1"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textColor="@color/common_text_h1_color"
+        android:textColorHint="@color/common_text_h2_color"
+        android:textSize="14sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="支持一次粘贴多个链接，每行一个"
+        android:textColor="@color/common_text_h2_color"
+        android:textSize="12sp" />
+</LinearLayout>

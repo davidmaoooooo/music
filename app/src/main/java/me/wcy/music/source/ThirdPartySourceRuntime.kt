@@ -14,6 +14,9 @@ object ThirdPartySourceRuntime {
      */
     private val engines = LinkedHashMap<String, SourceScriptEngine>()
 
+    /** 记录音源最近一次失败时间，用于短期冷却。 */
+    private val failedAtMap = mutableMapOf<String, Long>()
+
     private fun cachedEngine(sourceId: String): SourceScriptEngine? =
         synchronized(engines) { engines[sourceId] }
 
@@ -44,6 +47,14 @@ object ThirdPartySourceRuntime {
 
         var lastError: Throwable? = null
         for ((index, source) in sources.withIndex()) {
+            if (isCoolingDown(source.id)) {
+                ThirdPartySourceDebugLogger.log(
+                    "runtime_source_cooldown_skip",
+                    mapOf("index" to index, "sourceId" to source.id, "sourceName" to source.name)
+                )
+                continue
+            }
+
             ThirdPartySourceDebugLogger.log(
                 "runtime_source_try",
                 mapOf(
@@ -63,6 +74,7 @@ object ThirdPartySourceRuntime {
                         "errorMessage" to error.message.orEmpty()
                     )
                 )
+                markFailed(source.id)
                 lastError = error
                 null
             } ?: continue
@@ -70,6 +82,7 @@ object ThirdPartySourceRuntime {
             val result = engine.requestMusicUrl(info)
             val url = result.getOrNull()
             if (!url.isNullOrEmpty()) {
+                clearFailure(source.id)
                 if (index > 0) {
                     ThirdPartySourceDebugLogger.log(
                         "runtime_source_fallback_success",
@@ -81,6 +94,8 @@ object ThirdPartySourceRuntime {
 
             val error = result.exceptionOrNull()
             lastError = error
+            // 拿不到链接的音源进入冷却，后续播放直接跳过，避免反复等待
+            markFailed(source.id)
             ThirdPartySourceDebugLogger.log(
                 "runtime_source_failed",
                 mapOf(
@@ -105,6 +120,29 @@ object ThirdPartySourceRuntime {
         )
     }
 
+    /**
+     * 音源失效后短期跳过。
+     *
+     * 音源服务端异常时每次请求都要等超时，切换歌曲会明显卡顿；
+     * 这里记录失败时间，冷却期内直接跳到下一个音源。
+     */
+    private fun isCoolingDown(sourceId: String): Boolean {
+        val failedAt = synchronized(failedAtMap) { failedAtMap[sourceId] } ?: return false
+        if (System.currentTimeMillis() - failedAt > FAILURE_COOLDOWN_MS) {
+            synchronized(failedAtMap) { failedAtMap.remove(sourceId) }
+            return false
+        }
+        return true
+    }
+
+    private fun markFailed(sourceId: String) {
+        synchronized(failedAtMap) { failedAtMap[sourceId] = System.currentTimeMillis() }
+    }
+
+    private fun clearFailure(sourceId: String) {
+        synchronized(failedAtMap) { failedAtMap.remove(sourceId) }
+    }
+
     fun clear() {
         val snapshot = synchronized(engines) {
             val values = engines.values.toList()
@@ -112,6 +150,7 @@ object ThirdPartySourceRuntime {
             values
         }
         snapshot.forEach { it.destroy() }
+        synchronized(failedAtMap) { failedAtMap.clear() }
         ThirdPartySourceDebugLogger.log("runtime_cleared")
     }
 
@@ -158,5 +197,10 @@ object ThirdPartySourceRuntime {
         ThirdPartySourceDebugLogger.log("engine_load_success", mapOf("sourceId" to source.id))
         cacheEngine(source.id, next)
         return Result.success(next)
+    }
+
+    private companion object {
+        /** 音源失败后的冷却时长。 */
+        const val FAILURE_COOLDOWN_MS = 60_000L
     }
 }

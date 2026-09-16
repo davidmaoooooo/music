@@ -1,5 +1,6 @@
 package me.wcy.music.source
 
+import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -104,8 +105,8 @@ class ThirdPartySourceActivity : BaseMusicActivity() {
                     dp(44)
                 ).apply { topMargin = dp(8) })
                 addView(Button(this@ThirdPartySourceActivity).apply {
-                    text = "常用音源一键导入"
-                    setOnClickListener { showPresetDialog() }
+                    text = "批量选择导入"
+                    setOnClickListener { showBatchImportDialog() }
                 }, LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     dp(44)
@@ -125,57 +126,142 @@ class ThirdPartySourceActivity : BaseMusicActivity() {
         }
     }
 
-    private fun showPresetDialog() {
+    /** 批量选择导入：勾选多个常用音源一次导入。 */
+    private fun showBatchImportDialog() {
         val presets = ThirdPartySourcePresets.accelerated
-        val labels = presets.map { "${it.name}\n${it.url}" }.toTypedArray()
+        val layout = layoutInflater.inflate(R.layout.dialog_source_batch_import, null)
+        val listLayout = layout.findViewById<LinearLayout>(R.id.llPresetList)
+        val checkBoxes = mutableListOf<Pair<CheckBox, ThirdPartySourcePresets.Preset>>()
+        presets.forEach { preset ->
+            val checkBox = CheckBox(this).apply {
+                text = preset.name
+                textSize = 15f
+                setTextColor(getColor(R.color.common_text_h1_color))
+                setPadding(24, 18, 24, 18)
+                isChecked = true
+            }
+            listLayout.addView(checkBox, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
+            checkBoxes += checkBox to preset
+        }
         AlertDialog.Builder(this)
-            .setTitle("选择要导入的音源")
-            .setItems(labels) { _, which ->
-                importFromUrl(presets[which].url)
+            .setTitle("批量导入音源")
+            .setView(layout)
+            .setPositiveButton("导入选中") { _, _ ->
+                val selected = checkBoxes.filter { it.first.isChecked }.map { it.second }
+                if (selected.isEmpty()) {
+                    toast("请至少选择一个音源")
+                } else {
+                    importFromUrls(selected.map { it.url })
+                }
             }
             .setNegativeButton("取消", null)
             .show()
     }
 
+    /** 链接导入：支持一次粘贴多个链接。 */
     private fun showUrlImportDialog() {
-        val input = EditText(this).apply {
-            hint = "https://example.com/lx-music-source.js"
-            inputType = InputType.TYPE_TEXT_VARIATION_URI
-            setSingleLine(true)
-            setPadding(32, 24, 32, 24)
-        }
-        AlertDialog.Builder(this)
+        val layout = layoutInflater.inflate(R.layout.dialog_source_url_import, null)
+        val input = layout.findViewById<EditText>(R.id.etSourceUrl)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("从链接导入音源")
-            .setMessage("填写音源脚本的直链地址（需以 http:// 或 https:// 开头）")
-            .setView(input)
-            .setPositiveButton("导入") { _, _ ->
-                importFromUrl(input.text.toString())
-            }
+            .setView(layout)
+            .setPositiveButton("导入", null)
             .setNegativeButton("取消", null)
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+                val urls = input.text.toString()
+                    .split('\n', ' ', ',', ';')
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                if (urls.isEmpty()) {
+                    toast("请输入链接")
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                importFromUrls(urls)
+            }
+        }
+        dialog.show()
     }
 
-    private fun importFromUrl(url: String) {
-        val target = url.trim()
-        if (target.isEmpty()) {
-            toast("请输入链接")
-            return
-        }
-        if (!target.startsWith("http://") && !target.startsWith("https://")) {
+    private fun importFromUrls(urls: List<String>) {
+        val invalid = urls.filterNot { it.startsWith("http://") || it.startsWith("https://") }
+        if (invalid.isNotEmpty()) {
             toast("链接需以 http:// 或 https:// 开头")
             return
         }
-        toast("正在下载音源…")
+        toast("正在下载并测试 ${urls.size} 个音源…")
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching { ThirdPartySourceStore.importSourceFromUrl(this@ThirdPartySourceActivity, target) }
+            val results = withContext(Dispatchers.IO) {
+                urls.map { url -> importSingle(url) }
             }
-            result.onSuccess {
-                refresh()
-                toast("音源已导入并启用")
-            }.onFailure {
-                toast(it.message ?: "音源导入失败")
+            refresh()
+            showImportResults(results)
+        }
+    }
+
+    private data class ImportOutcome(
+        val url: String,
+        val name: String,
+        val imported: Boolean,
+        val error: String?,
+        val verifyMessage: String?
+    )
+
+    private fun importSingle(url: String): ImportOutcome {
+        val imported = runCatching {
+            ThirdPartySourceStore.importSourceFromUrl(this, url)
+        }
+        val source = imported.getOrNull()
+        if (source == null) {
+            return ImportOutcome(
+                url = url,
+                name = ThirdPartySourceDownloader.nameFromUrl(url),
+                imported = false,
+                error = imported.exceptionOrNull()?.message ?: "导入失败",
+                verifyMessage = null
+            )
+        }
+        // 导入后立刻用固定付费歌曲自检，判断音源是否可用
+        val verified = runCatching { ThirdPartySourceVerifier.verify(source) }
+        return ImportOutcome(
+            url = url,
+            name = source.name,
+            imported = true,
+            error = null,
+            verifyMessage = verified.getOrNull()?.let { result ->
+                if (result.ok) "可用" else result.message
+            } ?: "自检异常"
+        )
+    }
+
+    private fun showImportResults(results: List<ImportOutcome>) {
+        val message = results.joinToString("\n\n") { item ->
+            buildString {
+                append(item.name)
+                if (!item.imported) {
+                    append("\n  导入失败：")
+                    append(item.error)
+                } else {
+                    append("\n  自检：")
+                    append(item.verifyMessage)
+                }
             }
+        }
+        val anyFailed = results.any { !it.imported || it.verifyMessage != "可用" }
+        AlertDialog.Builder(this)
+            .setTitle("导入结果")
+            .setMessage(message)
+            .setPositiveButton("知道了", null)
+            .show()
+        if (anyFailed) {
+            toast("部分音源不可用，详见导入结果")
+        } else {
+            toast("音源已导入并启用")
         }
     }
 
