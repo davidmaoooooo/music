@@ -140,7 +140,17 @@ object OnlineMusicUriFetcher {
                         )
                     )
                 }
-            return result.getOrElse { "" }
+            val thirdPartyUrl = result.getOrNull()
+            if (!thirdPartyUrl.isNullOrEmpty()) {
+                return thirdPartyUrl
+            }
+            // 第三方音源拿不到链接时（例如会员歌曲需要音源侧 token）回退到内置接口，
+            // 否则播放器会直接抛 "Request song url error"。
+            Log.w(TAG, "third-party source returned no url for id=$songId, fallback to built-in api")
+            ThirdPartySourceDebugLogger.log(
+                "resolve_fallback_builtin",
+                mapOf("songId" to songId)
+            )
         }
         return fetchPlayUrl(songId, ConfigPreferences.playSoundQuality)
     }
