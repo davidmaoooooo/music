@@ -29,24 +29,20 @@ class ThirdPartySourceActivity : BaseMusicActivity() {
     private lateinit var listLayout: LinearLayout
     private lateinit var statusView: TextView
 
+    /** 本地文件导入：支持一次选择多个音源脚本。 */
     private val importLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri ?: return@registerForActivityResult
-        runCatching {
-            contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri> ->
+        if (uris.isEmpty()) return@registerForActivityResult
+        uris.forEach { uri ->
+            runCatching {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
         }
-        runCatching {
-            ThirdPartySourceStore.importSource(this, uri)
-        }.onSuccess {
-            refresh()
-            toast("音源已导入并启用")
-        }.onFailure {
-            toast(it.message ?: "音源导入失败")
-        }
+        importFromUris(uris)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,7 +85,7 @@ class ThirdPartySourceActivity : BaseMusicActivity() {
                     setPadding(0, dp(8), 0, 0)
                 })
                 addView(Button(this@ThirdPartySourceActivity).apply {
-                    text = "导入音源脚本"
+                    text = "从本地导入音源（可多选）"
                     setOnClickListener {
                         importLauncher.launch(arrayOf("text/*", "application/javascript", "*/*"))
                     }
@@ -186,6 +182,44 @@ class ThirdPartySourceActivity : BaseMusicActivity() {
             }
         }
         dialog.show()
+    }
+
+    /** 本地文件批量导入，导入后同样用付费歌曲自检。 */
+    private fun importFromUris(uris: List<Uri>) {
+        toast("正在导入并测试 ${uris.size} 个音源…")
+        lifecycleScope.launch {
+            val results = withContext(Dispatchers.IO) {
+                uris.map { uri -> importSingleUri(uri) }
+            }
+            refresh()
+            showImportResults(results)
+        }
+    }
+
+    private fun importSingleUri(uri: Uri): ImportOutcome {
+        val imported = runCatching {
+            ThirdPartySourceStore.importSource(this, uri)
+        }
+        val source = imported.getOrNull()
+        if (source == null) {
+            return ImportOutcome(
+                url = uri.lastPathSegment.orEmpty(),
+                name = uri.lastPathSegment.orEmpty().ifBlank { "本地音源" },
+                imported = false,
+                error = imported.exceptionOrNull()?.message ?: "导入失败",
+                verifyMessage = null
+            )
+        }
+        val verified = runCatching { ThirdPartySourceVerifier.verify(source) }
+        return ImportOutcome(
+            url = uri.lastPathSegment.orEmpty(),
+            name = source.name,
+            imported = true,
+            error = null,
+            verifyMessage = verified.getOrNull()?.let { result ->
+                if (result.ok) "可用" else result.message
+            } ?: "自检异常"
+        )
     }
 
     private fun importFromUrls(urls: List<String>) {

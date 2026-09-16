@@ -2,7 +2,6 @@ package me.wcy.music.service
 
 import android.app.PendingIntent
 import android.content.Intent
-import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.ForwardingPlayer
@@ -37,6 +36,7 @@ import me.wcy.music.service.likesong.LikeSongProcessorModule.Companion.audioPlay
 import me.wcy.music.utils.MusicUtils
 import me.wcy.music.utils.getSongId
 import me.wcy.music.utils.isLiked
+import me.wcy.music.utils.parseSongIdFromMediaId
 import me.wcy.music.utils.setLiked
 import top.wangchenyan.common.CommonApp
 
@@ -125,11 +125,13 @@ class MusicService : MediaSessionService() {
     companion object {
         val EXTRA_NOTIFICATION = "${CommonApp.app.packageName}.notification"
 
-        /** 喜欢按钮绑定的动作名，onSetRating 由此触发。 */
-        private const val ACTION_SET_RATING = "androidx.media3.session.SET_RATING"
-
-        /** 「设置评分」命令，对应 onSetRating 回调。 */
-        private val COMMAND_SET_RATING = SessionCommand(ACTION_SET_RATING, Bundle.EMPTY)
+        /**
+         * 「设置评分」命令，对应 onSetRating 回调。
+         *
+         * 必须用预定义命令码构造：自定义命令（action 字符串）不会路由到 onSetRating。
+         */
+        private val COMMAND_SET_RATING =
+            SessionCommand(SessionCommand.COMMAND_CODE_SESSION_SET_RATING)
     }
 
     /**
@@ -150,12 +152,9 @@ class MusicService : MediaSessionService() {
             controller: MediaSession.ControllerInfo
         ): MediaSession.ConnectionResult {
             val result = super.onConnect(session, controller)
-            val commands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
-                .buildUpon()
-                .add(COMMAND_SET_RATING)
-                .build()
+            // SET_RATING 已包含在默认会话命令中，这里只需暴露喜欢按钮
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                .setAvailableSessionCommands(commands)
+                .setAvailableSessionCommands(result.availableSessionCommands)
                 .setAvailablePlayerCommands(result.availablePlayerCommands)
                 .setCustomLayout(listOf(likeButton()))
                 .build()
@@ -181,7 +180,7 @@ class MusicService : MediaSessionService() {
         ): ListenableFuture<SessionResult> {
             val heart = rating as? HeartRating
                 ?: return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
-            val songId = mediaId.split("#").getOrNull(1)?.toLongOrNull() ?: 0L
+            val songId = parseSongIdFromMediaId(mediaId)
             if (songId <= 0L) {
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
             }
@@ -203,6 +202,26 @@ class MusicService : MediaSessionService() {
                 }
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
+
+        /**
+         * 不带 mediaId 的重载，作用于当前播放项。
+         *
+         * media3 原生控制器（MediaController#setRating）走这条路径；
+         * 系统控制中心则走带 mediaId 的重载。
+         */
+        @OptIn(UnstableApi::class)
+        override fun onSetRating(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            rating: Rating
+        ): ListenableFuture<SessionResult> {
+            return onSetRating(
+                session,
+                controller,
+                player.currentMediaItem?.mediaId.orEmpty(),
+                rating
+            )
         }
 
         /** 喜欢按钮：绑定到 onSetRating，系统据此显示当前歌曲的喜欢状态。 */

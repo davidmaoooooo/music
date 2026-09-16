@@ -4,7 +4,6 @@ import me.wcy.music.discover.playlist.square.bean.PlaylistListData
 import me.wcy.music.mine.bean.RecentSongListData
 import me.wcy.music.mine.bean.RecentPlaylistListData
 import me.wcy.music.mine.bean.UserRecordListData
-import me.wcy.music.mine.collect.song.bean.CollectSongResult
 import me.wcy.music.net.HttpClient
 import me.wcy.music.service.likesong.bean.LikeSongListData
 import me.wcy.music.storage.preference.ConfigPreferences
@@ -52,7 +51,7 @@ interface MineApi {
         @Query("tracks") tracks: String,
         @Query("op") op: String = "add",
         @Query("timestamp") timestamp: Long = ServerTime.currentTimeMillis()
-    ): CollectSongResult
+    ): NetResult<Any>
 
     /**
      * 喜欢音乐

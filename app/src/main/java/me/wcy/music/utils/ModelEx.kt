@@ -115,7 +115,12 @@ fun MediaItem.getSongType(): Int {
 }
 
 fun MediaItem.getSongId(): Long {
-    return mediaId.split("#").getOrNull(1)?.toLongOrNull() ?: 0L
+    return parseSongIdFromMediaId(mediaId)
+}
+
+/** 从 mediaId（格式为 "type#songId"）解析歌曲 id。 */
+fun parseSongIdFromMediaId(mediaId: String?): Long {
+    return mediaId?.split("#")?.getOrNull(1)?.toLongOrNull() ?: 0L
 }
 
 fun MediaMetadata.Builder.setDuration(duration: Long) = apply {

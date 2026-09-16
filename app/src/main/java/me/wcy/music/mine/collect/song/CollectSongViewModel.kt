@@ -7,6 +7,7 @@ import me.wcy.music.account.service.UserService
 import me.wcy.music.common.bean.PlaylistData
 import me.wcy.music.mine.MineApi
 import top.wangchenyan.common.model.CommonResult
+import top.wangchenyan.common.net.apiCall
 import javax.inject.Inject
 
 /**
@@ -38,18 +39,13 @@ class CollectSongViewModel @Inject constructor() : ViewModel() {
     }
 
     suspend fun collectSong(pid: Long): CommonResult<Unit> {
-        val res = kotlin.runCatching {
+        val res = apiCall {
             MineApi.get().collectSong(pid, songId.toString())
         }
-        return if (res.isSuccess) {
-            val body = res.getOrThrow().body
-            if (body.code == 200) {
-                CommonResult.success(Unit)
-            } else {
-                CommonResult.fail(body.code, body.message)
-            }
+        return if (res.isSuccess()) {
+            CommonResult.success(Unit)
         } else {
-            CommonResult.fail(msg = res.exceptionOrNull()?.message)
+            CommonResult.fail(res.code, res.msg)
         }
     }
 }

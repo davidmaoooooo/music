@@ -2,6 +2,7 @@ package me.wcy.music.service.likesong
 
 import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,9 +40,13 @@ class LikeSongProcessorImpl @Inject constructor(
         }
     }
 
+    private var updateJob: Job? = null
+
     override fun updateLikeSongList() {
         if (userService.isLogin().not()) return
-        launch {
+        // 已有在途请求时不再重复拉取
+        if (updateJob?.isActive == true) return
+        updateJob = launch {
             val res = runCatching {
                 MineApi.get().getMyLikeSongList(userService.getUserId())
             }
@@ -74,7 +79,6 @@ class LikeSongProcessorImpl @Inject constructor(
             return if (res.isSuccess() || updateLikePlaylist(id, false)) {
                 likeSongSet.remove(id)
                 _likeStateVersion.value += 1
-                updateLikeSongList()
                 CommonResult.success(Unit)
             } else {
                 CommonResult.fail(res.code, res.msg)
@@ -86,7 +90,6 @@ class LikeSongProcessorImpl @Inject constructor(
             return if (res.isSuccess() || updateLikePlaylist(id, true)) {
                 likeSongSet.add(id)
                 _likeStateVersion.value += 1
-                updateLikeSongList()
                 CommonResult.success(Unit)
             } else {
                 CommonResult.fail(res.code, res.msg)

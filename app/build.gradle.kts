@@ -20,8 +20,8 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        // 仅用于本机测试：伪装成网易云音乐包名，验证 vivo 原子岛/锁屏歌词等系统联动
-        applicationId = "com.netease.cloudmusic"
+        // 仅用于本机测试：伪装成椒盐音乐包名，验证 vivo 原子岛/原子随身听等系统联动
+        applicationId = "com.salt.music"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = libs.versions.versionCode.get().toInt()

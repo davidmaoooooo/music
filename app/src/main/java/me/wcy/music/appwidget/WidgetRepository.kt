@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +20,7 @@ import me.wcy.music.service.PlayState
 import me.wcy.music.service.PlayerController
 import me.wcy.music.utils.BitmapUtils.blur
 import me.wcy.music.utils.toSongEntity
+import top.wangchenyan.common.CommonApp
 import top.wangchenyan.common.utils.image.ImageUtils
 
 /**
@@ -37,6 +39,10 @@ object WidgetRepository : CoroutineScope by MainScope() {
 
     private var loadCoverJob: Job? = null
 
+    /** 小组件存在性检查的短期缓存。 */
+    private var widgetPresent = false
+    private var widgetCheckedAt = 0L
+
     fun init(application: Application) {
         if (::playerController.isInitialized) {
             return
@@ -54,16 +60,8 @@ object WidgetRepository : CoroutineScope by MainScope() {
                     _coverBitmapFlow.value = null
                     _bgBitmapFlow.value = null
                     MusicAppWidget().updateState(application, state)
-                    loadCoverJob = launch {
-                        val result = ImageUtils.loadBitmap(state.album)
-                        if (result.isSuccessWithData()) {
-                            val bitmap = result.getDataOrThrow()
-                            val bgBitmap = bitmap.blur(application)
-                            _coverBitmapFlow.value = bitmap
-                            _bgBitmapFlow.value = bgBitmap
-                            MusicAppWidget().updateState(application, state)
-                        }
-                    }
+                    // 桌面没有小组件时不必加载封面并做高斯模糊
+                    loadCoverJob = launch { loadCoverInternal() }
                 }
             }
         }
@@ -76,6 +74,55 @@ object WidgetRepository : CoroutineScope by MainScope() {
                 }
             }
         }
+        // 小组件可能在本类初始化之前就已添加到桌面，这里补加载一次封面
+        refreshCover()
+    }
+
+    /**
+     * 小组件被添加到桌面时调用：此时不会触发切歌回调，
+     * 需要主动加载一次当前歌曲的封面。
+     */
+    fun refreshCover() {
+        // WidgetRepository 由 MediaController 就绪后异步初始化，
+        // 小组件可能先被添加，此处需防止访问未初始化的 state
+        if (::playerController.isInitialized.not() || ::state.isInitialized.not()) return
+        loadCoverJob?.cancel()
+        loadCoverJob = launch {
+            loadCoverInternal(requireWidget = false)
+        }
+    }
+
+    /**
+     * 加载当前歌曲封面并做高斯模糊。
+     *
+     * @param requireWidget 为 true 时先确认桌面存在小组件，避免无谓的加载与模糊计算；
+     *                      由小组件添加事件触发时可传 false。
+     */
+    private suspend fun loadCoverInternal(requireWidget: Boolean = true) {
+        if (::state.isInitialized.not()) return
+        val context = CommonApp.app
+        if (requireWidget && !hasWidget(context)) return
+        if (state.album.isBlank()) return
+        val result = ImageUtils.loadBitmap(state.album)
+        if (result.isSuccessWithData()) {
+            val bitmap = result.getDataOrThrow()
+            val bgBitmap = bitmap.blur(context)
+            _coverBitmapFlow.value = bitmap
+            _bgBitmapFlow.value = bgBitmap
+            MusicAppWidget().updateState(context, state)
+        }
+    }
+
+    /** 桌面是否存在本应用的小组件实例（结果短期缓存，避免每次切歌都查一次）。 */
+    private suspend fun hasWidget(context: Context): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - widgetCheckedAt < WIDGET_CHECK_INTERVAL_MS) return widgetPresent
+        val present = runCatching {
+            GlanceAppWidgetManager(context).getGlanceIds(MusicAppWidget::class.java).isNotEmpty()
+        }.getOrDefault(false)
+        widgetPresent = present
+        widgetCheckedAt = now
+        return present
     }
 
     fun getMediaController(): MediaController? {
@@ -84,6 +131,8 @@ object WidgetRepository : CoroutineScope by MainScope() {
         }
         return playerController.mediaController
     }
+
+    private const val WIDGET_CHECK_INTERVAL_MS = 10_000L
 
     private fun WidgetState.copy(context: Context, mediaItem: MediaItem?): WidgetState {
         val song = mediaItem?.toSongEntity()

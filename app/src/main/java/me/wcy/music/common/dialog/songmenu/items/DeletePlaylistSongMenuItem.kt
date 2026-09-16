@@ -11,6 +11,7 @@ import me.wcy.music.mine.MineApi
 import top.wangchenyan.common.ext.findActivity
 import top.wangchenyan.common.ext.showConfirmDialog
 import top.wangchenyan.common.ext.toast
+import top.wangchenyan.common.net.apiCall
 import top.wangchenyan.common.ui.activity.BaseActivity
 
 /**
@@ -22,26 +23,21 @@ class DeletePlaylistSongMenuItem(
     private val onDelete: (songData: SongData) -> Unit,
 ) : MenuItem {
     override val name: String
-        get() = "删除"
+        get() = "移出歌单"
 
     override fun onClick(view: View) {
         val activity = view.context.findActivity() as? BaseActivity
         activity ?: return
         if (activity.application.userService().isLogin().not()) return
-        activity.showConfirmDialog(message = "确定将所选音乐从列表删除？") {
+        activity.showConfirmDialog(message = "确定将所选音乐从歌单移除？") {
             activity.lifecycleScope.launch {
-                val result = runCatching {
+                val result = apiCall {
                     MineApi.get().collectSong(playlistData.id, songData.id.toString(), "del")
                 }
-                if (result.isSuccess) {
-                    val body = result.getOrThrow().body
-                    if (body.code == 200) {
-                        onDelete.invoke(songData)
-                    } else {
-                        toast(body.message)
-                    }
+                if (result.isSuccess()) {
+                    onDelete.invoke(songData)
                 } else {
-                    toast(result.exceptionOrNull()?.message)
+                    toast(result.msg)
                 }
             }
         }
