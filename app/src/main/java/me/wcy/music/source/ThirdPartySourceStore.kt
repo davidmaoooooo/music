@@ -29,19 +29,22 @@ object ThirdPartySourceStore {
 
     fun importSource(context: Context, uri: Uri): ThirdPartySourceInfo {
         val rawName = queryDisplayName(context, uri)
-        val name = rawName.substringBeforeLast('.').ifBlank { "第三方音源" }
+        val fallbackName = rawName.substringBeforeLast('.').ifBlank { "第三方音源" }
         val id = UUID.randomUUID().toString()
         val fileName = "$id.js"
         val target = File(sourceDir(context), fileName)
-        context.contentResolver.openInputStream(uri).use { input ->
-            requireNotNull(input) { "无法读取音源文件" }
-            target.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
+        val script = context.contentResolver.openInputStream(uri)?.use { input ->
+            input.readBytes().toString(Charsets.UTF_8)
+        } ?: throw IllegalArgumentException("无法读取音源文件")
+        target.writeText(script, Charsets.UTF_8)
+        val scriptInfo = ThirdPartySourceScriptInfo.parse(script)
         val next = list().map { it.copy(enabled = false) } + ThirdPartySourceInfo(
             id = id,
-            name = name,
+            name = scriptInfo.name.ifBlank { fallbackName },
+            description = scriptInfo.description,
+            version = scriptInfo.version,
+            author = scriptInfo.author,
+            homepage = scriptInfo.homepage,
             fileName = fileName,
             importTime = System.currentTimeMillis(),
             enabled = true

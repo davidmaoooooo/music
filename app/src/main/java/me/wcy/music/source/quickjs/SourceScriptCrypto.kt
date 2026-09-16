@@ -59,7 +59,11 @@ object SourceScriptCrypto {
 
     private fun normalizeAesMode(mode: String): String {
         return when (mode) {
-            "AES" -> "AES/ECB/NoPadding"
+            // 落雪音源脚本传入 "AES" 时依赖 Android Cipher.getInstance("AES") 的默认填充，
+            // 即 AES/ECB/PKCS5Padding。若改成 NoPadding，非分组对齐的明文（如网易 eapi）
+            // 会直接抛异常，导致音源请求失败。
+            "AES" -> "AES/ECB/PKCS5Padding"
+            "AES/ECB/PKCS7Padding" -> "AES/ECB/PKCS5Padding"
             "AES/CBC/PKCS7Padding" -> "AES/CBC/PKCS5Padding"
             else -> mode
         }

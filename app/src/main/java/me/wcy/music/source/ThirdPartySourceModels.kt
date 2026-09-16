@@ -7,6 +7,14 @@ data class ThirdPartySourceInfo(
     val id: String = "",
     @SerializedName("name")
     val name: String = "",
+    @SerializedName("description")
+    val description: String? = null,
+    @SerializedName("version")
+    val version: String? = null,
+    @SerializedName("author")
+    val author: String? = null,
+    @SerializedName("homepage")
+    val homepage: String? = null,
     @SerializedName("fileName")
     val fileName: String = "",
     @SerializedName("importTime")

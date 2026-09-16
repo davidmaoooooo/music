@@ -12,6 +12,7 @@ import com.whl.quickjs.wrapper.QuickJSContext
 import me.wcy.music.source.ThirdPartyMusicInfo
 import me.wcy.music.source.ThirdPartySourceDebugLogger
 import me.wcy.music.source.ThirdPartySourceInfo
+import me.wcy.music.source.ThirdPartySourceScriptInfo
 import me.wcy.music.source.ThirdPartySourceStore
 import top.wangchenyan.common.utils.GsonUtils
 import java.util.UUID
@@ -47,14 +48,15 @@ class SourceScriptEngine(
                 .use { it.readText() }
             ctx.evaluate(preload)
             val script = ThirdPartySourceStore.readScript(context, source)
+            val scriptInfo = ThirdPartySourceScriptInfo.parse(script)
             ctx.getGlobalObject().getJSFunction("lx_setup").call(
                 key,
                 source.id,
-                source.name,
-                "",
-                "",
-                "",
-                "",
+                scriptInfo.name.ifBlank { source.name },
+                scriptInfo.description.orEmpty(),
+                scriptInfo.version.orEmpty(),
+                scriptInfo.author.orEmpty(),
+                scriptInfo.homepage.orEmpty(),
                 script
             )
             ctx.evaluate(script)

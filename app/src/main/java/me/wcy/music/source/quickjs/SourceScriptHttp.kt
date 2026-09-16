@@ -141,6 +141,12 @@ object SourceScriptHttp {
             ?: get("body")
                 ?.takeIf { it.isJsonObject || it.isJsonArray }
                 ?.let { "application/json; charset=utf-8".toMediaType() }
+            ?: get("form")
+                ?.takeUnless { it.isJsonNull }
+                ?.let { "application/x-www-form-urlencoded; charset=utf-8".toMediaType() }
+            ?: get("formData")
+                ?.takeUnless { it.isJsonNull }
+                ?.let { "application/x-www-form-urlencoded; charset=utf-8".toMediaType() }
 
     private fun JsonObject.string(name: String): String? {
         return get(name)?.takeUnless { it.isJsonNull }?.asString

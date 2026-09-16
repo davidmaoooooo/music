@@ -90,13 +90,63 @@ context.__lx_native_call__utils_str2b64 = value =>
   Buffer.from(String(value), 'utf8').toString('base64')
 context.__lx_native_call__utils_b642buf = value =>
   JSON.stringify(Array.from(Buffer.from(String(value), 'base64')))
-context.__lx_native_call__utils_str2md5 = value =>
-  crypto.createHash('md5').update(String(value)).digest('hex')
-context.__lx_native_call__utils_aes_encrypt = () => {
-  throw new Error('aes_encrypt not implemented in desktop test harness')
+// Mirrors SourceScriptCrypto.md5: the app URL-decodes the input before hashing.
+context.__lx_native_call__utils_str2md5 = value => {
+  let decoded = String(value)
+  try {
+    decoded = decodeURIComponent(decoded)
+  } catch (error) {
+    // keep the raw value when it is not valid percent-encoding
+  }
+  return crypto.createHash('md5').update(decoded).digest('hex')
 }
-context.__lx_native_call__utils_rsa_encrypt = () => {
-  throw new Error('rsa_encrypt not implemented in desktop test harness')
+// Mirrors SourceScriptCrypto.aesEncrypt. Note that the app maps "AES" to
+// AES/ECB/PKCS5Padding, i.e. the same default as Cipher.getInstance("AES").
+context.__lx_native_call__utils_aes_encrypt = (dataBase64, keyBase64, ivBase64, mode) => {
+  try {
+    const data = Buffer.from(String(dataBase64), 'base64')
+    const key = Buffer.from(String(keyBase64), 'base64')
+    const ivRaw = Buffer.from(String(ivBase64), 'base64')
+    let algorithm
+    let iv = null
+    if (mode === 'AES' || mode === 'AES/ECB/PKCS5Padding' || mode === 'AES/ECB/PKCS7Padding') {
+      algorithm = 'aes-128-ecb'
+    } else if (mode === 'AES/CBC/PKCS5Padding' || mode === 'AES/CBC/PKCS7Padding') {
+      algorithm = 'aes-128-cbc'
+      iv = Buffer.alloc(16)
+      ivRaw.copy(iv, 0, 0, Math.min(ivRaw.length, 16))
+    } else {
+      throw new Error(`unsupported aes mode: ${mode}`)
+    }
+    const cipher = crypto.createCipheriv(algorithm, key, iv)
+    return Buffer.concat([cipher.update(data), cipher.final()]).toString('base64')
+  } catch (error) {
+    // The app swallows crypto failures and returns an empty string.
+    console.log(`[aes-encrypt-failed] ${error?.message || error}`)
+    return ''
+  }
+}
+// Mirrors SourceScriptCrypto.rsaEncrypt.
+context.__lx_native_call__utils_rsa_encrypt = (dataBase64, publicKeyBase64, padding) => {
+  try {
+    const data = Buffer.from(String(dataBase64), 'base64')
+    const body = String(publicKeyBase64).replace(/\s+/g, '').match(/.{1,64}/g) || []
+    const pem = `-----BEGIN PUBLIC KEY-----\n${body.join('\n')}\n-----END PUBLIC KEY-----\n`
+    return crypto
+      .publicEncrypt(
+        {
+          key: pem,
+          padding: padding === 'RSA/ECB/NoPadding'
+            ? crypto.constants.RSA_NO_PADDING
+            : crypto.constants.RSA_PKCS1_PADDING,
+        },
+        data
+      )
+      .toString('base64')
+  } catch (error) {
+    console.log(`[rsa-encrypt-failed] ${error?.message || error}`)
+    return ''
+  }
 }
 
 const sandbox = vm.createContext(context)
@@ -127,9 +177,19 @@ async function handleHttpRequest(payload) {
     init.signal = controller.signal
     const response = await fetch(url, init)
     clearTimeout(timeout)
-    const body = await response.text()
+    const bodyText = await response.text()
+    // Mirrors SourceScriptHttp.parseBody: JSON-looking bodies become objects.
+    const trimmed = bodyText.trim()
+    let body = bodyText
+    if (trimmed.startsWith('{') || trimmed.startsWith('[') || trimmed.startsWith('"')) {
+      try {
+        body = JSON.parse(trimmed)
+      } catch (error) {
+        body = bodyText
+      }
+    }
     const elapsed = Date.now() - startedAt
-    requestLog.push({ url, status: response.status, elapsed, bytes: body.length })
+    requestLog.push({ url, status: response.status, elapsed, bytes: bodyText.length })
     console.log(`[http] ${response.status} ${elapsed}ms ${url}`)
     const headersObj = {}
     response.headers.forEach((value, name) => { headersObj[name] = value })
@@ -164,11 +224,42 @@ function run(code, filename) {
   return vm.runInContext(code, sandbox, { filename })
 }
 
+// Mirrors ThirdPartySourceScriptInfo: the app reads script metadata from the
+// leading comment block instead of using the file name.
+const SCRIPT_INFO_LIMITS = {
+  name: 24,
+  description: 36,
+  version: 36,
+  author: 56,
+  homepage: 1024,
+}
+
+function parseScriptInfo(script) {
+  const comment = /^\/\*[\s\S]+?\*\//.exec(script)?.[0] || ''
+  const fields = {}
+  for (const match of comment.matchAll(/^\s?\*\s?@(\w+)\s(.+)$/gm)) {
+    const key = match[1]
+    const value = match[2].trim()
+    if (key in SCRIPT_INFO_LIMITS && value) {
+      const limit = SCRIPT_INFO_LIMITS[key]
+      fields[key] = value.length > limit ? `${value.slice(0, limit)}...` : value
+    }
+  }
+  return {
+    name: fields.name || '',
+    description: fields.description || '',
+    version: fields.version || '',
+    author: fields.author || '',
+    homepage: fields.homepage || '',
+  }
+}
+
 const preload = fs.readFileSync(preloadPath, 'utf8')
 const userScript = fs.readFileSync(scriptPath, 'utf8')
+const scriptInfo = parseScriptInfo(userScript)
 run(preload, preloadPath)
 run(
-  `globalThis.lx_setup(${JSON.stringify(key)}, "desktop-test", "desktop-test", "", "", "", "", ${JSON.stringify(userScript)})`,
+  `globalThis.lx_setup(${JSON.stringify(key)}, "desktop-test", ${JSON.stringify(scriptInfo.name)}, ${JSON.stringify(scriptInfo.description)}, ${JSON.stringify(scriptInfo.version)}, ${JSON.stringify(scriptInfo.author)}, ${JSON.stringify(scriptInfo.homepage)}, ${JSON.stringify(userScript)})`,
   'lx_setup.js'
 )
 run(userScript, scriptPath)
