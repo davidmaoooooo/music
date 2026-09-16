@@ -18,9 +18,20 @@ object ThirdPartySourceStore {
         }.getOrNull().orEmpty()
     }
 
+    /**
+     * 已启用的音源，按启用顺序排列。
+     *
+     * 播放时从第一个开始请求，失败后依次回退到下一个。
+     */
+    fun enabledSources(): List<ThirdPartySourceInfo> {
+        return list().filter { it.enabled }
+    }
+
+    /** 当前优先使用的音源，仅用于界面展示。 */
     fun selected(): ThirdPartySourceInfo? {
         val selectedId = ConfigPreferences.thirdPartySourceSelectedId
-        return list().firstOrNull { it.id == selectedId && it.enabled }
+        val enabled = enabledSources()
+        return enabled.firstOrNull { it.id == selectedId } ?: enabled.firstOrNull()
     }
 
     fun scriptFile(context: Context, source: ThirdPartySourceInfo): File {
@@ -32,13 +43,32 @@ object ThirdPartySourceStore {
         val fallbackName = rawName.substringBeforeLast('.').ifBlank { "第三方音源" }
         val id = UUID.randomUUID().toString()
         val fileName = "$id.js"
-        val target = File(sourceDir(context), fileName)
         val script = context.contentResolver.openInputStream(uri)?.use { input ->
             input.readBytes().toString(Charsets.UTF_8)
         } ?: throw IllegalArgumentException("无法读取音源文件")
+        return addSource(context, script, fallbackName, id, fileName)
+    }
+
+    /** 通过链接导入音源脚本。 */
+    fun importSourceFromUrl(context: Context, url: String): ThirdPartySourceInfo {
+        val script = ThirdPartySourceDownloader.download(url)
+        val fallbackName = ThirdPartySourceDownloader.nameFromUrl(url)
+        val id = UUID.randomUUID().toString()
+        val fileName = "$id.js"
+        return addSource(context, script, fallbackName, id, fileName)
+    }
+
+    private fun addSource(
+        context: Context,
+        script: String,
+        fallbackName: String,
+        id: String,
+        fileName: String
+    ): ThirdPartySourceInfo {
+        val target = File(sourceDir(context), fileName)
         target.writeText(script, Charsets.UTF_8)
         val scriptInfo = ThirdPartySourceScriptInfo.parse(script)
-        val next = list().map { it.copy(enabled = false) } + ThirdPartySourceInfo(
+        val next = list().filterNot { it.id == id } + ThirdPartySourceInfo(
             id = id,
             name = scriptInfo.name.ifBlank { fallbackName },
             description = scriptInfo.description,
@@ -55,11 +85,29 @@ object ThirdPartySourceStore {
         return next.last()
     }
 
-    fun setEnabled(id: String) {
+    /** 启用/停用单个音源，多个音源可以同时启用。 */
+    fun setEnabled(id: String, enabled: Boolean = true) {
         val next = list().map { item ->
-            item.copy(enabled = item.id == id)
+            if (item.id == id) item.copy(enabled = enabled) else item
         }
         saveList(next)
+        val enabledList = next.filter { it.enabled }
+        if (enabledList.none { it.id == ConfigPreferences.thirdPartySourceSelectedId }) {
+            ConfigPreferences.thirdPartySourceSelectedId = enabledList.firstOrNull()?.id.orEmpty()
+        }
+        if (!enabled) {
+            // 停用后释放该音源的脚本引擎，避免继续占用内存
+            ThirdPartySourceRuntime.clear(id)
+        }
+    }
+
+    /** 把指定音源提到最前，作为优先请求的音源。 */
+    fun setPriority(id: String) {
+        val current = list()
+        val target = current.firstOrNull { it.id == id } ?: return
+        val reordered = listOf(target.copy(enabled = true)) +
+            current.filterNot { it.id == id }
+        saveList(reordered)
         ConfigPreferences.thirdPartySourceSelectedId = id
         ThirdPartySourceRuntime.clear()
     }
@@ -73,11 +121,9 @@ object ThirdPartySourceStore {
         val next = current.filterNot { it.id == id }
         saveList(next)
         if (ConfigPreferences.thirdPartySourceSelectedId == id) {
-            val first = next.firstOrNull()
-            ConfigPreferences.thirdPartySourceSelectedId = first?.id.orEmpty()
-            saveList(next.map { it.copy(enabled = it.id == first?.id) })
+            ConfigPreferences.thirdPartySourceSelectedId = next.firstOrNull { it.enabled }?.id.orEmpty()
         }
-        ThirdPartySourceRuntime.clear()
+        ThirdPartySourceRuntime.clear(id)
     }
 
     fun readScript(context: Context, source: ThirdPartySourceInfo): String {
