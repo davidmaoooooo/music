@@ -125,11 +125,11 @@ class MusicService : MediaSessionService() {
     companion object {
         val EXTRA_NOTIFICATION = "${CommonApp.app.packageName}.notification"
 
-        /** media3 预定义的「设置评分」命令，对应 onSetRating 回调。 */
-        private val COMMAND_SET_RATING = SessionCommand(
-            SessionCommand.COMMAND_CODE_SESSION_SET_RATING,
-            Bundle.EMPTY
-        )
+        /** 喜欢按钮绑定的动作名，onSetRating 由此触发。 */
+        private const val ACTION_SET_RATING = "androidx.media3.session.SET_RATING"
+
+        /** 「设置评分」命令，对应 onSetRating 回调。 */
+        private val COMMAND_SET_RATING = SessionCommand(ACTION_SET_RATING, Bundle.EMPTY)
     }
 
     /**

@@ -199,8 +199,6 @@ object ThirdPartySourceRuntime {
         return Result.success(next)
     }
 
-    private companion object {
-        /** 音源失败后的冷却时长。 */
-        const val FAILURE_COOLDOWN_MS = 60_000L
-    }
+    /** 音源失败后的冷却时长。 */
+    private const val FAILURE_COOLDOWN_MS = 60_000L
 }
