@@ -3,6 +3,9 @@ package me.wcy.music.service.likesong
 import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import me.wcy.music.account.service.UserService
@@ -20,6 +23,9 @@ class LikeSongProcessorImpl @Inject constructor(
     private val userService: UserService
 ) : LikeSongProcessor, CoroutineScope by MainScope() {
     private val likeSongSet = mutableSetOf<Long>()
+
+    private val _likeStateVersion = MutableStateFlow(0L)
+    override val likeStateVersion: StateFlow<Long> = _likeStateVersion.asStateFlow()
 
     override fun init() {
         launch {
@@ -43,6 +49,7 @@ class LikeSongProcessorImpl @Inject constructor(
             if (data?.code == 200) {
                 likeSongSet.clear()
                 likeSongSet.addAll(data.ids)
+                _likeStateVersion.value += 1
             }
         }
     }
@@ -66,6 +73,7 @@ class LikeSongProcessorImpl @Inject constructor(
             }
             return if (res.isSuccess() || updateLikePlaylist(id, false)) {
                 likeSongSet.remove(id)
+                _likeStateVersion.value += 1
                 updateLikeSongList()
                 CommonResult.success(Unit)
             } else {
@@ -77,6 +85,7 @@ class LikeSongProcessorImpl @Inject constructor(
             }
             return if (res.isSuccess() || updateLikePlaylist(id, true)) {
                 likeSongSet.add(id)
+                _likeStateVersion.value += 1
                 updateLikeSongList()
                 CommonResult.success(Unit)
             } else {

@@ -2,6 +2,7 @@ package me.wcy.music.utils
 
 import android.net.Uri
 import androidx.core.os.bundleOf
+import androidx.media3.common.HeartRating
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import me.wcy.music.common.bean.SongData
@@ -167,6 +168,20 @@ fun MediaMetadata.getBaseCover(): String? {
     return extras?.getString(EXTRA_BASE_COVER)
 }
 
+/**
+ * 同步「喜欢」状态。
+ *
+ * 使用 media3 原生的 [HeartRating]：系统控制中心（vivo 原子随身听、原子岛等）
+ * 会读取 userRating 判断当前歌曲是否已被喜欢，并据此显示/切换喜欢按钮。
+ */
+fun MediaMetadata.Builder.setLiked(liked: Boolean) = apply {
+    setUserRating(if (liked) HeartRating(true) else HeartRating(false))
+}
+
+fun MediaMetadata.isLiked(): Boolean {
+    return (userRating as? HeartRating)?.isHeart ?: false
+}
+
 fun MediaMetadata.Builder.setSourcePlaylistId(value: Long) = apply {
     val extras = build().extras ?: bundleOf()
     extras.putLong(EXTRA_SOURCE_PLAYLIST_ID, value)
@@ -198,3 +213,4 @@ fun MediaItem.getLargeCover(): String {
         baseCover?.asLargeCover() ?: ""
     }
 }
+
