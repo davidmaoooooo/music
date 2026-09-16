@@ -74,8 +74,12 @@ object WidgetRepository : CoroutineScope by MainScope() {
                 }
             }
         }
-        // 小组件可能在本类初始化之前就已添加到桌面，这里补加载一次封面
-        refreshCover()
+        // 小组件可能在本类初始化之前就已添加到桌面，存在时补加载一次封面
+        launch {
+            if (hasWidget(application)) {
+                loadCoverInternal()
+            }
+        }
     }
 
     /**
@@ -86,22 +90,18 @@ object WidgetRepository : CoroutineScope by MainScope() {
         // WidgetRepository 由 MediaController 就绪后异步初始化，
         // 小组件可能先被添加，此处需防止访问未初始化的 state
         if (::playerController.isInitialized.not() || ::state.isInitialized.not()) return
+        // 由小组件添加事件触发，直接标记为存在，避免存在性缓存造成误判
+        widgetPresent = true
+        widgetCheckedAt = System.currentTimeMillis()
         loadCoverJob?.cancel()
-        loadCoverJob = launch {
-            loadCoverInternal(requireWidget = false)
-        }
+        loadCoverJob = launch { loadCoverInternal() }
     }
 
-    /**
-     * 加载当前歌曲封面并做高斯模糊。
-     *
-     * @param requireWidget 为 true 时先确认桌面存在小组件，避免无谓的加载与模糊计算；
-     *                      由小组件添加事件触发时可传 false。
-     */
-    private suspend fun loadCoverInternal(requireWidget: Boolean = true) {
+    /** 加载当前歌曲封面并做高斯模糊；桌面无小组件时直接跳过。 */
+    private suspend fun loadCoverInternal() {
         if (::state.isInitialized.not()) return
         val context = CommonApp.app
-        if (requireWidget && !hasWidget(context)) return
+        if (!hasWidget(context)) return
         if (state.album.isBlank()) return
         val result = ImageUtils.loadBitmap(state.album)
         if (result.isSuccessWithData()) {
@@ -117,9 +117,10 @@ object WidgetRepository : CoroutineScope by MainScope() {
     private suspend fun hasWidget(context: Context): Boolean {
         val now = System.currentTimeMillis()
         if (now - widgetCheckedAt < WIDGET_CHECK_INTERVAL_MS) return widgetPresent
+        // 查询失败时按「存在」处理，保证封面仍会加载，避免功能退化
         val present = runCatching {
             GlanceAppWidgetManager(context).getGlanceIds(MusicAppWidget::class.java).isNotEmpty()
-        }.getOrDefault(false)
+        }.getOrDefault(true)
         widgetPresent = present
         widgetCheckedAt = now
         return present
