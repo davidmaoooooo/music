@@ -258,23 +258,18 @@ class MusicService : MediaSessionService() {
         }
     }
 
+    /**
+     * 播放器包装。
+     *
+     * 只统一「上一首」的语义（始终切上一首，不重启当前歌曲），
+     * 索引交给 ExoPlayer 计算，从而遵循随机播放的打乱顺序。
+     *
+     * 此前用 currentMediaItemIndex - 1 直接取原始下标，绕过了随机顺序，
+     * 导致随机播放时上一首与打乱结果不一致。
+     */
     private class NotificationPlayer(player: Player) : ForwardingPlayer(player) {
         override fun seekToPrevious() {
-            seekToRealPrevious()
-        }
-
-        override fun seekToPreviousMediaItem() {
-            seekToRealPrevious()
-        }
-
-        private fun seekToRealPrevious() {
-            if (mediaItemCount == 0) return
-            val targetIndex = if (currentMediaItemIndex <= 0) {
-                mediaItemCount - 1
-            } else {
-                currentMediaItemIndex - 1
-            }
-            seekTo(targetIndex, 0)
+            seekToPreviousMediaItem()
         }
     }
 }
